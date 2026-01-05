@@ -19,8 +19,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "stable-ts>=2.15.0,<3.0.0",
-    "openai-whisper>=20231117",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -61,7 +61,11 @@ mypy_path = "src"
 packages = ["transcribe"]
 
 [[tool.mypy.overrides]]
-module = "stable_whisper.*"
+module = "openai.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "dotenv.*"
 ignore_missing_imports = true
 
 [tool.ruff]

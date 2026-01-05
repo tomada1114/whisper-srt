@@ -1,7 +1,7 @@
 """Command-line interface for transcription.
 
 This module provides the CLI entry point for transcribing
-MP3 audio files to SRT subtitle format.
+MP3 audio files to SRT subtitle format using OpenAI Whisper API.
 """
 
 from __future__ import annotations
@@ -11,8 +11,7 @@ import logging
 import sys
 from pathlib import Path
 
-from transcribe.domain.vocabulary import DEFAULT_VOCABULARY
-from transcribe.infrastructure.whisper_client import WhisperTranscriptionClient
+from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +24,13 @@ def create_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="transcribe",
-        description="Transcribe MP3 audio to SRT subtitle format using Whisper.",
+        description="Transcribe MP3 audio to SRT subtitle format using OpenAI Whisper API.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   transcribe input.mp3                        # Output: input_transcribed.srt
   transcribe input.mp3 -o output.srt          # Specify output file
-  transcribe input.mp3 --model medium         # Use medium model (faster)
   transcribe input.mp3 --language en          # English transcription
-  transcribe input.mp3 --vocabulary vocab.txt # Custom vocabulary file
         """,
     )
 
@@ -52,25 +49,10 @@ Examples:
     )
 
     parser.add_argument(
-        "--model",
-        type=str,
-        default="large",
-        choices=["tiny", "base", "small", "medium", "large"],
-        help="Whisper model size (default: large)",
-    )
-
-    parser.add_argument(
         "--language",
         type=str,
-        default="Japanese",
-        help="Target language for transcription (default: Japanese)",
-    )
-
-    parser.add_argument(
-        "--vocabulary",
-        type=Path,
-        default=None,
-        help="Custom vocabulary file (one term per line)",
+        default="ja",
+        help="Target language code for transcription (ISO-639-1, default: ja)",
     )
 
     parser.add_argument(
@@ -87,30 +69,6 @@ Examples:
     )
 
     return parser
-
-
-def load_vocabulary(path: Path | None) -> tuple[str, ...]:
-    """Load vocabulary from file or return default.
-
-    Args:
-        path: Path to vocabulary file, or None for default.
-
-    Returns:
-        Tuple of vocabulary terms.
-
-    Raises:
-        FileNotFoundError: If vocabulary file does not exist.
-    """
-    if path is None:
-        return DEFAULT_VOCABULARY
-
-    if not path.exists():
-        msg = f"Vocabulary file not found: {path}"
-        raise FileNotFoundError(msg)
-
-    content = path.read_text(encoding="utf-8")
-    terms = [line.strip() for line in content.splitlines() if line.strip()]
-    return tuple(terms)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -146,20 +104,12 @@ def main(argv: list[str] | None = None) -> int:
     if output_path is None:
         output_path = input_path.parent / f"{input_path.stem}_transcribed.srt"
 
-    # Load vocabulary
+    # Create client and transcribe
     try:
-        vocabulary = load_vocabulary(args.vocabulary)
-        logger.debug("Loaded %d vocabulary terms", len(vocabulary))
-    except FileNotFoundError as e:
+        client = OpenAITranscriptionClient(language=args.language)
+    except ValueError as e:
         logger.error(str(e))
         return 1
-
-    # Create client and transcribe
-    client = WhisperTranscriptionClient(
-        model_size=args.model,
-        language=args.language,
-        vocabulary=vocabulary,
-    )
 
     try:
         logger.info("Transcribing %s...", input_path)

@@ -2,7 +2,22 @@
 
 MP3音声ファイルをWhisperでSRT字幕形式に変換するCLIツール。
 
-## インストール
+## セットアップ
+
+### 仮想環境の作成
+
+```bash
+# venvの作成
+python -m venv venv
+
+# venvの有効化（macOS/Linux）
+source venv/bin/activate
+
+# venvの有効化（Windows）
+venv\Scripts\activate
+```
+
+### インストール
 
 ```bash
 # 開発用インストール
@@ -10,6 +25,12 @@ pip install -e ".[dev]"
 
 # 本番用インストール
 pip install -e .
+```
+
+### venvの無効化
+
+```bash
+deactivate
 ```
 
 ## 使い方
