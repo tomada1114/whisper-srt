@@ -1,34 +1,63 @@
 """Default vocabulary for transcription accuracy improvement.
 
-This module contains domain-specific technical terms that improve
-Whisper's recognition accuracy for AI-driven development content.
+This module contains domain-specific technical terms organized by category
+that improve Whisper's recognition accuracy for AI-driven development content.
+
+Categories are defined as separate tuples for easier maintenance and updates.
+The build_vocabulary() function combines all categories into a single tuple.
 """
 
-DEFAULT_VOCABULARY: tuple[str, ...] = (
-    # AI サービス・プラットフォーム
+# =============================================================================
+# AI サービス・プラットフォーム
+# =============================================================================
+AI_SERVICES: tuple[str, ...] = (
+    # Claude 関連
     "Claude",
     "Claude Code",
+    "Claude Sonnet",
     "Claude Sonnet 4",
     "Claude Sonnet 4.5",
+    "Claude Opus",
     "Claude Opus 4",
     "Claude Opus 4.5",
     "Claude Haiku",
+    "Claude Haiku 4.5",
     "Claude Pro",
     "Claude Max",
     "Anthropic",
+    # OpenAI 関連
     "ChatGPT",
     "GPT-4",
     "GPT-4o",
     "GPT-5",
-    "GPT-5-Codex",
     "OpenAI",
+    "Whisper",
+    # その他 AI サービス
     "Gemini",
     "Gemini CLI",
     "Perplexity",
     "DeepSeek",
-    "Whisper",
-    "SuperClaude",
-    # AI コーディングツール・エージェント
+    # API・SDK 関連
+    "Messages API",
+    "Agent SDK",
+    "Claude Agent SDK",
+    "OpenAI Agents SDK",
+    "Prompt Caching",
+    "Structured Outputs",
+    "Extended Thinking",
+    # LLM 関連
+    "LLM",
+    "Large Language Model",
+    "RAG",
+    "Fine-tuning",
+    "Chain-of-Thought",
+    "生成AI",
+)
+
+# =============================================================================
+# AI コーディングツール・エージェント
+# =============================================================================
+CODING_TOOLS: tuple[str, ...] = (
     "Cursor",
     "Windsurf",
     "Cline",
@@ -40,10 +69,15 @@ DEFAULT_VOCABULARY: tuple[str, ...] = (
     "v0",
     "Replit",
     "Kiro",
-    "AWS Kiro",
-    # MCP (Model Context Protocol) 関連
+)
+
+# =============================================================================
+# MCP (Model Context Protocol) 関連
+# =============================================================================
+MCP_TERMS: tuple[str, ...] = (
     "MCP",
     "Model Context Protocol",
+    "MCP Connector",
     "Playwright MCP",
     "filesystem MCP",
     "Slack MCP",
@@ -53,29 +87,27 @@ DEFAULT_VOCABULARY: tuple[str, ...] = (
     "Supabase MCP",
     "Brave Search MCP",
     "Obsidian MCP",
-    "Chrome DevTools MCP",
     "GitHub MCP",
-    "PostgreSQL MCP",
-    "Notion MCP",
-    "Sentry MCP",
-    # AI 開発フレームワーク・SDK
-    "LangChain",
-    "LlamaIndex",
-    "Semantic Kernel",
-    "OpenAI Agents SDK",
-    "Claude Agent SDK",
-    "LiteLLM",
-    "Ollama",
-    # Claude Code 機能・コンポーネント
+)
+
+# =============================================================================
+# Claude Code 機能・コンポーネント
+# =============================================================================
+CLAUDE_CODE_TERMS: tuple[str, ...] = (
+    # ファイル・ディレクトリ
     "CLAUDE.md",
     ".claude",
+    ".claude/",
     ".claude/rules",
-    ".clauderules",
+    ".claude/rules/",
     ".claude/commands",
+    ".claude/commands/",
     ".claude/agents",
-    ".claude/settings.json",
-    ".claude/mcp.json",
+    ".claude/agents/",
     ".mcp.json",
+    ".claudeignore",
+    "claude_desktop_config.json",
+    # 機能・コンポーネント
     "サブエージェント",
     "Sub agents",
     "カスタムコマンド",
@@ -90,227 +122,161 @@ DEFAULT_VOCABULARY: tuple[str, ...] = (
     "フロントマター",
     "Glob",
     "Grep",
-    "opusplan",
     "Plan mode",
     "プランモード",
     "コンテキストウィンドウ",
-    "context window",
+    "Context Window",
     "トークン",
-    "プロンプトキャッシュ",
-    # データベース・バックエンドサービス
+    "Compacting",
+    "Tool Use",
+    "Handoff",
+    "Headless",
+    "Sandbox",
+    # フック
+    "PreToolUse",
+    "PostToolUse",
+    "UserPromptSubmit",
+    # スラッシュコマンド
+    "/init",
+    "/compact",
+    "/memory",
+    "/mcp",
+    "/doctor",
+)
+
+# =============================================================================
+# AI 開発フレームワーク・SDK
+# =============================================================================
+AI_FRAMEWORKS: tuple[str, ...] = (
+    "LangChain",
+    "LlamaIndex",
+    "Semantic Kernel",
+    "LiteLLM",
+    "Ollama",
+)
+
+# =============================================================================
+# サービス（よく言及するもののみ）
+# =============================================================================
+SERVICES: tuple[str, ...] = (
     "Supabase",
-    "Firebase",
-    "PostgreSQL",
-    "Neon",
     "Vercel",
-    "Netlify",
-    "Render.com",
-    "Railway",
-    "PlanetScale",
-    "Cloudflare",
-    "AWS",
-    "GCP",
-    "Azure",
-    # 認証・決済サービス
-    "Clerk",
-    "Auth0",
-    "Stripe",
-    "RevenueCat",
-    "Superwall",
-    # テスト・品質管理ツール
-    "Playwright",
-    "Sentry",
-    "Jest",
-    "Vitest",
-    "RSpec",
+    "GitHub",
+    "Notion",
+    "Obsidian",
+)
+
+# =============================================================================
+# テスト関連（AI駆動開発文脈で使うもの）
+# =============================================================================
+TESTING_TERMS: tuple[str, ...] = (
     "pytest",
     "E2E",
-    # 自動化ツール
-    "n8n",
-    "Zapier",
-    "Make",
-    # 開発手法・概念
+    "Happy path",
+    "Sad path",
+    "Edge case",
+    "Unhappy path",
+    "Integration test",
+    "Unit test",
+)
+
+# =============================================================================
+# 開発手法・概念（AI駆動開発関連のみ）
+# =============================================================================
+ARCHITECTURE_TERMS: tuple[str, ...] = (
+    "DDD",
+    "Onion Architecture",
+    "Clean Architecture",
+    "Boy Scout Rule",
+    "DRY",
+    "SOLID",
+    "TDD",
+    "CI/CD",
     "Vibe Coding",
     "バイブコーディング",
     "AI駆動開発",
     "仕様駆動開発",
     "Spec Driven Development",
-    "SDD",
-    "TDD",
-    "cc-sdd",
-    "Spec Driven Codex",
-    "Build in Public",
-    "Issue駆動開発",
     "エージェント型",
     "ハルシネーション",
     "Prompt Engineering",
     "プロンプトエンジニアリング",
     "コンテキストエンジニアリング",
-    "RAG",
-    "Fine-tuning",
-    "ファインチューニング",
-    "Few-shot Learning",
-    "Chain-of-Thought",
-    "SWE-bench",
-    "OWASP",
-    "DRY原則",
-    "PARA Method",
-    "Onion Architecture",
-    "DDD",
-    # プログラミング言語・フレームワーク
+)
+
+# =============================================================================
+# フレームワーク（よく言及するもののみ）
+# =============================================================================
+FRAMEWORKS: tuple[str, ...] = (
     "TypeScript",
-    "JavaScript",
     "Python",
-    "Ruby",
-    "Rails",
     "React",
     "Next.js",
-    "Vue.js",
-    "Nuxt.js",
     "Node.js",
-    "Express",
     "FastAPI",
-    "Django",
-    "Flask",
-    "Swift",
-    "SwiftUI",
-    "Kotlin",
-    "Flutter",
-    "Go",
-    "Rust",
     "Tailwind CSS",
     "shadcn/ui",
-    "Radix UI",
-    "Chakra UI",
-    "Framer Motion",
-    # 開発ツール・パッケージマネージャー
+)
+
+# =============================================================================
+# IDE・開発環境（よく言及するもののみ）
+# =============================================================================
+IDE_TOOLS: tuple[str, ...] = (
     "VS Code",
-    "Visual Studio Code",
-    "Git",
-    "GitHub",
-    "GitHub CLI",
-    "npm",
-    "yarn",
-    "pnpm",
-    "Bun",
-    "uv",
-    "pip",
-    "poetry",
+    "JetBrains",
+    "IntelliJ IDEA",
+    "PyCharm",
+    "WSL",
+    "Devcontainer",
+    "iTerm2",
     "Docker",
-    "Kubernetes",
-    "Terraform",
-    "ESLint",
-    "Prettier",
-    "Biome",
-    "Vite",
-    "Webpack",
     "Git worktree",
-    # API・プロトコル
-    "REST",
-    "RESTful",
-    "GraphQL",
-    "WebSocket",
-    "SSE",
-    "gRPC",
-    "tRPC",
-    "API",
-    "Endpoint",
-    "JSON",
-    "YAML",
-    "Markdown",
-    # 学習・教育プラットフォーム
-    "Udemy",
-    "Learning Next",
-    "Qiita",
-    "Zenn",
-    "note",
-    "Zenn Book",
-    # SNS・コミュニケーション
-    "X",
-    "Twitter",
-    "YouTube",
-    "Instagram",
-    "Voicy",
-    "Discord",
-    "Slack",
-    "Notion",
-    "Obsidian",
-    # とまだ独自
+)
+
+# =============================================================================
+# とまだ独自
+# =============================================================================
+TOMADA_TERMS: tuple[str, ...] = (
     "Vibe Coding Studio",
     "とまだ",
-    # iOS / Apple 開発関連
-    "Apple Developer Program",
-    "App Store",
-    "TestFlight",
-    "Xcode",
-    "iOS",
-    "macOS",
-    "Core Data",
-    "CloudKit",
-    "HealthKit",
-    "StoreKit",
-    # セキュリティ関連
-    "XSS",
-    "CSRF",
-    "SQL Injection",
-    "OAuth",
-    "OAuth 2.0",
-    "JWT",
-    "API Key",
-    ".env",
-    # パフォーマンス関連
-    "ボトルネック",
-    "レイテンシ",
-    "キャッシュ",
-    "CDN",
-    "SSR",
-    "CSR",
-    "ISR",
-    "SSG",
-    # その他技術用語
-    "CI/CD",
-    "デプロイ",
-    "マイグレーション",
-    "リファクタリング",
-    "技術的負債",
-    "コードレビュー",
-    "プルリクエスト",
-    "PR",
-    "Issue",
-    "Conventional Commits",
-    "モノレポ",
-    "マイクロサービス",
-    "コンポーネント",
-    "ミドルウェア",
-    "ORM",
-    "Prisma",
-    "Drizzle",
-    "N+1問題",
-    # ビジネス・収益関連
-    "フリーランス",
-    "個人開発",
-    "副業",
-    "収益化",
-    "SEO",
-    "MRR",
-    "LTV",
-    # 画像・動画生成AI
-    "Stable Diffusion",
-    "DALL-E",
-    "Midjourney",
-    "Seedream",
-    "Seedream 4.0",
-    "生成AI",
-    "Filmora",
-    "FILMORA",
-    # LLM関連
-    "LLM",
-    "Large Language Model",
-    "大規模言語モデル",
-    "Transformer",
-    "Embedding",
-    "Vector Database",
-    "Pinecone",
-    "Weaviate",
-    "Chroma",
 )
+
+
+def build_vocabulary() -> tuple[str, ...]:
+    """Combine all vocabulary categories into a single tuple.
+
+    Returns:
+        A tuple containing all unique vocabulary terms from all categories.
+        Duplicates across categories are removed.
+    """
+    all_terms: list[str] = []
+    categories = [
+        AI_SERVICES,
+        CODING_TOOLS,
+        MCP_TERMS,
+        CLAUDE_CODE_TERMS,
+        AI_FRAMEWORKS,
+        SERVICES,
+        TESTING_TERMS,
+        ARCHITECTURE_TERMS,
+        FRAMEWORKS,
+        IDE_TOOLS,
+        TOMADA_TERMS,
+    ]
+
+    for category in categories:
+        all_terms.extend(category)
+
+    # Remove duplicates while preserving order
+    seen: set[str] = set()
+    unique_terms: list[str] = []
+    for term in all_terms:
+        if term not in seen:
+            seen.add(term)
+            unique_terms.append(term)
+
+    return tuple(unique_terms)
+
+
+# Build the default vocabulary from all categories
+DEFAULT_VOCABULARY: tuple[str, ...] = build_vocabulary()
