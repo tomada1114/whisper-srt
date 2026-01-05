@@ -21,9 +21,9 @@ class TranscriptionClientProtocol(Protocol):
     supporting dependency injection and facilitating testing.
 
     Example:
-        >>> from transcribe.infrastructure.whisper_client import WhisperTranscriptionClient
+        >>> from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
         >>> from transcribe.application.protocols import TranscriptionClientProtocol
-        >>> client: TranscriptionClientProtocol = WhisperTranscriptionClient()
+        >>> client: TranscriptionClientProtocol = OpenAITranscriptionClient()
         >>> segment_count = client.transcribe(
         ...     audio_path=Path("audio/source.mp3"),
         ...     output_path=Path("subtitle.srt"),
@@ -53,13 +53,13 @@ class TranscriptionClientProtocol(Protocol):
 
         Raises:
             FileNotFoundError: If audio_path does not exist.
-            RuntimeError: If transcription fails due to model loading,
-                processing errors, or other unexpected conditions.
+            RuntimeError: If transcription fails due to API errors,
+                network issues, or other unexpected conditions.
 
         Preconditions:
             - audio_path exists and is a valid audio file
             - output_path parent directory exists
-            - System has sufficient memory for model loading
+            - Valid API credentials are configured (e.g., OPENAI_API_KEY)
 
         Postconditions:
             - SRT file is created at output_path

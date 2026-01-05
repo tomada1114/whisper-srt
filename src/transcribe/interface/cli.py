@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     except RuntimeError as e:
-        logger.error("Transcription failed: %s", e)
+        logger.error("%s", e)
         return 1
 
     except KeyboardInterrupt:

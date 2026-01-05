@@ -270,3 +270,134 @@ class TestOpenAITranscriptionClientTranscribe:
 
                         assert count == 0
                         assert output_path.exists()
+
+
+@pytest.mark.unit
+class TestOpenAITranscriptionClientErrorHandling:
+    """Tests for specific OpenAI error type handling."""
+
+    def test_transcribe_handles_authentication_error(self) -> None:
+        """transcribe should provide actionable message for auth errors."""
+        from openai import AuthenticationError
+
+        mock_openai = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_openai.audio.transcriptions.create.side_effect = AuthenticationError(
+            "Invalid API key",
+            response=mock_response,
+            body=None,
+        )
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.infrastructure.openai_client import (
+                        OpenAITranscriptionClient,
+                    )
+
+                    client = OpenAITranscriptionClient()
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "source.mp3"
+                        audio_path.touch()
+                        output_path = Path(tmpdir) / "subtitle.srt"
+
+                        with pytest.raises(RuntimeError, match="authentication"):
+                            client.transcribe(audio_path, output_path)
+
+    def test_transcribe_handles_rate_limit_error(self) -> None:
+        """transcribe should provide actionable message for rate limits."""
+        from openai import RateLimitError
+
+        mock_openai = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 429
+        mock_openai.audio.transcriptions.create.side_effect = RateLimitError(
+            "Rate limit exceeded",
+            response=mock_response,
+            body=None,
+        )
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.infrastructure.openai_client import (
+                        OpenAITranscriptionClient,
+                    )
+
+                    client = OpenAITranscriptionClient()
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "source.mp3"
+                        audio_path.touch()
+                        output_path = Path(tmpdir) / "subtitle.srt"
+
+                        with pytest.raises(RuntimeError, match="rate limit"):
+                            client.transcribe(audio_path, output_path)
+
+    def test_transcribe_handles_timeout_error(self) -> None:
+        """transcribe should provide actionable message for timeouts."""
+        from openai import APITimeoutError
+
+        mock_openai = MagicMock()
+        mock_request = MagicMock()
+        mock_openai.audio.transcriptions.create.side_effect = APITimeoutError(
+            request=mock_request,
+        )
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.infrastructure.openai_client import (
+                        OpenAITranscriptionClient,
+                    )
+
+                    client = OpenAITranscriptionClient()
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "source.mp3"
+                        audio_path.touch()
+                        output_path = Path(tmpdir) / "subtitle.srt"
+
+                        with pytest.raises(RuntimeError, match="timed out"):
+                            client.transcribe(audio_path, output_path)
+
+    def test_transcribe_handles_connection_error(self) -> None:
+        """transcribe should provide actionable message for connection errors."""
+        from openai import APIConnectionError
+
+        mock_openai = MagicMock()
+        mock_request = MagicMock()
+        mock_openai.audio.transcriptions.create.side_effect = APIConnectionError(
+            request=mock_request,
+        )
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.infrastructure.openai_client import (
+                        OpenAITranscriptionClient,
+                    )
+
+                    client = OpenAITranscriptionClient()
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "source.mp3"
+                        audio_path.touch()
+                        output_path = Path(tmpdir) / "subtitle.srt"
+
+                        with pytest.raises(RuntimeError, match="connect"):
+                            client.transcribe(audio_path, output_path)

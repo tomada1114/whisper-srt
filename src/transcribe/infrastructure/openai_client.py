@@ -13,7 +13,13 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    OpenAI,
+    RateLimitError,
+)
 
 from transcribe.domain.vocabulary import DEFAULT_VOCABULARY
 
@@ -131,23 +137,52 @@ class OpenAITranscriptionClient:
                     prompt=prompt,
                 )
 
-            # Write SRT content to file
-            output_path.write_text(transcript, encoding="utf-8")
-
-            # Count segments (SRT segments start with a number on its own line)
-            segment_count = len(re.findall(r"^\d+$", transcript, re.MULTILINE))
-
-            logger.info(
-                "Transcription complete: %d segments saved to %s",
-                segment_count,
-                output_path,
-            )
-
-            return segment_count
-
         except FileNotFoundError:
             raise
+        except AuthenticationError as e:
+            msg = f"OpenAI authentication failed. Check your OPENAI_API_KEY: {e}"
+            logger.error(msg)
+            raise RuntimeError(msg) from e
+        except RateLimitError as e:
+            msg = f"OpenAI rate limit exceeded. Please wait and try again: {e}"
+            logger.warning(msg)
+            raise RuntimeError(msg) from e
+        except APITimeoutError as e:
+            msg = f"OpenAI API request timed out. Please try again: {e}"
+            logger.warning(msg)
+            raise RuntimeError(msg) from e
+        except APIConnectionError as e:
+            msg = f"Failed to connect to OpenAI API. Check your network: {e}"
+            logger.error(msg)
+            raise RuntimeError(msg) from e
         except Exception as e:
-            msg = f"Transcription failed: {e}"
+            msg = f"Transcription API call failed: {e}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
+
+        # Write SRT content to file (separate try block for I/O errors)
+        try:
+            output_path.write_text(transcript, encoding="utf-8")
+        except OSError as e:
+            msg = f"Failed to write output file '{output_path}': {e}"
+            logger.error(msg)
+            raise RuntimeError(msg) from e
+
+        # Log warning for empty transcript
+        if not transcript or transcript.strip() == "":
+            logger.warning(
+                "OpenAI returned empty transcript for %s. "
+                "This may indicate silent audio or an unsupported format.",
+                audio_path,
+            )
+
+        # Count segments (SRT segments start with a number on its own line)
+        segment_count = len(re.findall(r"^\d+$", transcript, re.MULTILINE))
+
+        logger.info(
+            "Transcription complete: %d segments saved to %s",
+            segment_count,
+            output_path,
+        )
+
+        return segment_count
