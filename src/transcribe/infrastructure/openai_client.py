@@ -10,10 +10,12 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from dotenv import load_dotenv
 from openai import OpenAI
+
+from transcribe.domain.vocabulary import DEFAULT_VOCABULARY
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ class OpenAITranscriptionClient:
         - Model: whisper-1 (OpenAI's hosted Whisper)
         - Language: Japanese (default, configurable)
         - API Key: Read from OPENAI_API_KEY environment variable
+        - Vocabulary: Custom terms to improve recognition accuracy
 
     Example:
         >>> from pathlib import Path
@@ -44,6 +47,7 @@ class OpenAITranscriptionClient:
     def __init__(
         self,
         language: Optional[str] = None,
+        vocabulary: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """Initialize the OpenAI transcription client.
 
@@ -53,6 +57,8 @@ class OpenAITranscriptionClient:
         Args:
             language: Target language code for transcription (ISO-639-1).
                 Default is "ja" for Japanese.
+            vocabulary: Custom vocabulary terms to improve recognition.
+                Default is built-in AI/MCP technical terms.
 
         Raises:
             ValueError: If OPENAI_API_KEY environment variable is not set.
@@ -65,6 +71,21 @@ class OpenAITranscriptionClient:
 
         self._client = OpenAI(api_key=api_key)
         self._language = language or self._DEFAULT_LANGUAGE
+        self._vocabulary = vocabulary or DEFAULT_VOCABULARY
+
+    def _build_prompt(self) -> str:
+        """Build prompt string from vocabulary for Whisper API.
+
+        OpenAI Whisper API accepts a prompt parameter to guide transcription.
+        This helps with recognition of technical terms, names, and jargon.
+
+        Note: Prompt token limit is 244 tokens. Long vocabularies may be truncated.
+
+        Returns:
+            Prompt string containing vocabulary terms.
+        """
+        vocab_str = ", ".join(self._vocabulary)
+        return vocab_str
 
     def transcribe(
         self,
@@ -98,12 +119,16 @@ class OpenAITranscriptionClient:
         try:
             logger.info("Calling OpenAI Whisper API for %s...", audio_path)
 
+            prompt = self._build_prompt()
+            logger.debug("Using prompt with %d vocabulary terms", len(self._vocabulary))
+
             with open(audio_path, "rb") as audio_file:
                 transcript = self._client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file,
                     response_format="srt",
                     language=self._language,
+                    prompt=prompt,
                 )
 
             # Write SRT content to file
