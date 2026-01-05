@@ -66,6 +66,19 @@ class TestOpenAITranscriptionClientInit:
                     client = OpenAITranscriptionClient(language="en")
                     assert client._language == "en"
 
+    def test_init_uses_default_vocabulary(self) -> None:
+        """__init__ should use DEFAULT_VOCABULARY when not specified."""
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch("transcribe.infrastructure.openai_client.OpenAI"):
+                    from transcribe.domain.vocabulary import DEFAULT_VOCABULARY
+                    from transcribe.infrastructure.openai_client import (
+                        OpenAITranscriptionClient,
+                    )
+
+                    client = OpenAITranscriptionClient()
+                    assert client._vocabulary == DEFAULT_VOCABULARY
+
 
 @pytest.mark.unit
 class TestOpenAITranscriptionClientTranscribe:
@@ -149,7 +162,7 @@ class TestOpenAITranscriptionClientTranscribe:
                         assert count == 3
 
     def test_transcribe_calls_api_with_correct_parameters(self) -> None:
-        """transcribe should call OpenAI API with correct parameters."""
+        """transcribe should call OpenAI API with correct parameters including prompt."""
         mock_openai = MagicMock()
         mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
 
@@ -176,6 +189,9 @@ class TestOpenAITranscriptionClientTranscribe:
                         assert call_kwargs["model"] == "whisper-1"
                         assert call_kwargs["response_format"] == "srt"
                         assert call_kwargs["language"] == "ja"
+                        # Verify prompt contains vocabulary terms
+                        assert "prompt" in call_kwargs
+                        assert "Claude" in call_kwargs["prompt"]
 
     def test_transcribe_raises_runtime_error_on_api_failure(self) -> None:
         """transcribe should raise RuntimeError if API call fails."""
