@@ -1,4 +1,4 @@
-.PHONY: help install dev lint format type-check test ci clean
+.PHONY: help install dev lint format type-check test ci clean build publish release
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -46,3 +46,33 @@ transcribe: ## Transcribe an MP3 file (Usage: make transcribe INPUT=audio.mp3)
 	else \
 		python -m transcribe "$(INPUT)"; \
 	fi
+
+# Release commands
+build: clean ## Build package
+	pip install --quiet build
+	python -m build
+
+publish: ## Upload to PyPI (requires TWINE_USERNAME and TWINE_PASSWORD or ~/.pypirc)
+	pip install --quiet twine
+	twine upload dist/*
+
+release: ## Full release: bump version, CI, build, publish, tag (Usage: make release VERSION=0.3.0)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION argument required"; \
+		echo "Usage: make release VERSION=0.3.0"; \
+		exit 1; \
+	fi
+	@echo "==> Updating version to $(VERSION)..."
+	@sed -i '' 's/^version = ".*"/version = "$(VERSION)"/' pyproject.toml
+	@echo "==> Running CI checks..."
+	$(MAKE) ci
+	@echo "==> Building package..."
+	$(MAKE) build
+	@echo "==> Publishing to PyPI..."
+	$(MAKE) publish
+	@echo "==> Creating git commit and tag..."
+	git add pyproject.toml
+	git commit -m "chore: bump version to $(VERSION)"
+	git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
+	git push && git push --tags
+	@echo "==> Release v$(VERSION) complete!"
