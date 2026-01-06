@@ -34,6 +34,11 @@ uv tool install whisper-srt
 whisper-srt audio.mp3
 ```
 
+> **注意**: `Executable already exists`エラーが出た場合は、`--force`で上書きしてください:
+> ```bash
+> uv tool install whisper-srt --force
+> ```
+
 ## アップグレード
 
 インストール済みの場合、最新版にアップグレード:
@@ -50,6 +55,20 @@ whisper-srt input.mp3 -o output.srt      # 出力ファイルを指定
 whisper-srt input.mp3 --language ja      # 言語を指定（日本語）
 whisper-srt --help                       # 全オプションを確認
 ```
+
+## 初期設定
+
+`--init`で対話的にデフォルト設定を行います:
+
+```bash
+whisper-srt --init
+```
+
+このコマンドは以下を実行します:
+1. `~/.config/whisper-srt/vocabulary.txt`に語彙ファイルを作成
+2. デフォルト言語を選択（`~/.config/whisper-srt/language.txt`に保存）
+
+設定後は、毎回`--language`オプションを指定する必要がなくなります。
 
 ## 対応言語
 
