@@ -13,6 +13,11 @@ from pathlib import Path
 
 from transcribe import __version__
 from transcribe.application.protocols import TranscriptionClientProtocol
+from transcribe.domain.config_loader import (
+    load_default_language,
+    prompt_language_selection,
+    save_language,
+)
 from transcribe.domain.vocabulary_loader import (
     initialize_vocabulary_file,
     load_default_vocabulary,
@@ -60,8 +65,8 @@ Examples:
     parser.add_argument(
         "--language",
         type=str,
-        default="en",
-        help="Target language code for transcription (ISO-639-1, default: en)",
+        default=None,
+        help="Target language code for transcription (ISO-639-1, default: from config or en)",
     )
 
     parser.add_argument(
@@ -122,6 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.init:
         created, message = initialize_vocabulary_file()
         print(message)
+
+        language = prompt_language_selection()
+        save_language(language)
+        print(f"\nLanguage setting saved: {language}")
         return 0
 
     # Validate input argument
@@ -157,10 +166,14 @@ def main(argv: list[str] | None = None) -> int:
     if vocabulary:
         logger.debug("Loaded %d vocabulary terms", len(vocabulary))
 
+    # Determine language
+    language = args.language if args.language else load_default_language()
+    logger.debug("Using language: %s", language)
+
     # Create client and transcribe
     try:
         client: TranscriptionClientProtocol = OpenAITranscriptionClient(
-            language=args.language, vocabulary=vocabulary
+            language=language, vocabulary=vocabulary
         )
     except ValueError as e:
         logger.error(str(e))

@@ -62,14 +62,14 @@ class TestCLIParser:
 
         assert args.language == "en"
 
-    def test_parser_language_default_is_en(self) -> None:
-        """Parser should default to en (English) language."""
+    def test_parser_language_default_is_none(self) -> None:
+        """Parser should default language to None (loaded from config at runtime)."""
         from transcribe.interface.cli import create_parser
 
         parser = create_parser()
         args = parser.parse_args(["input.mp3"])
 
-        assert args.language == "en"
+        assert args.language is None
 
     def test_parser_accepts_verbose_flag(self) -> None:
         """Parser should accept -v/--verbose flag."""
@@ -343,9 +343,22 @@ class TestCLIInit:
     def test_init_creates_vocabulary_file(self, tmp_path: Path) -> None:
         """--init should create vocabulary file and return 0."""
         vocab_path = tmp_path / "vocabulary.txt"
+        lang_path = tmp_path / "language.txt"
 
-        with patch(
-            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        with (
+            patch(
+                "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH",
+                vocab_path,
+            ),
+            patch(
+                "transcribe.interface.cli.prompt_language_selection", return_value="en"
+            ),
+            patch(
+                "transcribe.domain.config_loader.DEFAULT_CONFIG_DIR", tmp_path
+            ),
+            patch(
+                "transcribe.domain.config_loader.DEFAULT_LANGUAGE_PATH", lang_path
+            ),
         ):
             from transcribe.interface.cli import main
 
@@ -362,9 +375,22 @@ class TestCLIInit:
         """--init should skip if file already exists and return 0."""
         vocab_path = tmp_path / "vocabulary.txt"
         vocab_path.write_text("existing content")
+        lang_path = tmp_path / "language.txt"
 
-        with patch(
-            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        with (
+            patch(
+                "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH",
+                vocab_path,
+            ),
+            patch(
+                "transcribe.interface.cli.prompt_language_selection", return_value="en"
+            ),
+            patch(
+                "transcribe.domain.config_loader.DEFAULT_CONFIG_DIR", tmp_path
+            ),
+            patch(
+                "transcribe.domain.config_loader.DEFAULT_LANGUAGE_PATH", lang_path
+            ),
         ):
             from transcribe.interface.cli import main
 
@@ -372,6 +398,34 @@ class TestCLIInit:
 
         assert result == 0
         assert vocab_path.read_text() == "existing content"
+
+    def test_init_saves_selected_language(self, tmp_path: Path) -> None:
+        """--init should save selected language to config file."""
+        vocab_path = tmp_path / "vocabulary.txt"
+        lang_path = tmp_path / "language.txt"
+
+        with (
+            patch(
+                "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH",
+                vocab_path,
+            ),
+            patch(
+                "transcribe.interface.cli.prompt_language_selection", return_value="ja"
+            ),
+            patch(
+                "transcribe.domain.config_loader.DEFAULT_CONFIG_DIR", tmp_path
+            ),
+            patch(
+                "transcribe.domain.config_loader.DEFAULT_LANGUAGE_PATH", lang_path
+            ),
+        ):
+            from transcribe.interface.cli import main
+
+            result = main(["--init"])
+
+        assert result == 0
+        assert lang_path.exists()
+        assert lang_path.read_text() == "ja\n"
 
     def test_main_requires_input_when_not_init(self) -> None:
         """main should require input file when --init is not used."""
