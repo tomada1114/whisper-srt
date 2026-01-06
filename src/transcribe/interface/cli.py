@@ -24,14 +24,14 @@ def create_parser() -> argparse.ArgumentParser:
         Configured ArgumentParser instance.
     """
     parser = argparse.ArgumentParser(
-        prog="transcribe",
+        prog="whisper-srt",
         description="Transcribe MP3 audio to SRT subtitle format using OpenAI Whisper API.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  transcribe input.mp3                        # Output: input_transcribed.srt
-  transcribe input.mp3 -o output.srt          # Specify output file
-  transcribe input.mp3 --language en          # English transcription
+  whisper-srt input.mp3                       # Output: input.srt
+  whisper-srt input.mp3 -o output.srt         # Specify output file
+  whisper-srt input.mp3 --language en         # English transcription
         """,
     )
 
@@ -46,7 +46,7 @@ Examples:
         "--output",
         type=Path,
         default=None,
-        help="Output SRT file path (default: {input_stem}_transcribed.srt)",
+        help="Output SRT file path (default: {input_stem}.srt)",
     )
 
     parser.add_argument(
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     # Determine output path
     output_path: Path | None = args.output
     if output_path is None:
-        output_path = input_path.parent / f"{input_path.stem}_transcribed.srt"
+        output_path = input_path.with_suffix(".srt")
 
     # Create client and transcribe
     try:

@@ -133,7 +133,7 @@ class TestCLIMain:
                         result = main([str(audio_path)])
 
                         assert result == 0
-                        expected_output = Path(tmpdir) / "input_transcribed.srt"
+                        expected_output = Path(tmpdir) / "input.srt"
                         assert expected_output.exists()
 
     def test_main_returns_1_when_api_key_missing(self) -> None:
