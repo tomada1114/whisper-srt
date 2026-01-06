@@ -14,33 +14,49 @@ MP3音声ファイルをOpenAI Whisper APIでSRT字幕形式に変換するCLI�
 - $0.006/分（1時間あたり約50-60円）
 - 新規OpenAIアカウントには無料クレジット付与あり
 
-## セットアップ
+## インストール
 
-### 1. 仮想環境の作成
+### pipx（推奨）
+
+依存関係の競合を避けた隔離環境でインストール:
 
 ```bash
+pipx install whisper-srt
+```
+
+### pip
+
+```bash
+pip install whisper-srt
+```
+
+### ソースから（開発用）
+
+```bash
+git clone https://github.com/tomada1114/whisper-srt.git
+cd whisper-srt
 python -m venv venv
-source venv/bin/activate  # macOS/Linux
-# venv\Scripts\activate   # Windows
+source venv/bin/activate
+pip install -e ".[dev]"
 ```
 
-### 2. インストール
+## APIキーの設定
+
+OpenAI APIキーを以下のいずれかの方法で設定:
+
+### 方法1: 環境変数（pipx利用時に推奨）
 
 ```bash
-pip install -e ".[dev]"  # 開発用
-pip install -e .         # 本番用
+export OPENAI_API_KEY="sk-your-api-key-here"
 ```
 
-### 3. APIキーの設定
+シェル設定ファイル（`~/.zshrc` や `~/.bashrc`）に追加すると永続化できます。
+
+### 方法2: .envファイル（プロジェクト単位）
 
 ```bash
 cp .env.example .env
 # .env を編集して OPENAI_API_KEY を設定
-```
-
-`.env` ファイル:
-```
-OPENAI_API_KEY=sk-your-api-key-here
 ```
 
 APIキーは [OpenAI Platform](https://platform.openai.com/api-keys) で取得できます。
@@ -49,16 +65,16 @@ APIキーは [OpenAI Platform](https://platform.openai.com/api-keys) で取得�
 
 ```bash
 # 基本的な使い方（出力: input.srt）
-python -m transcribe input.mp3
+whisper-srt input.mp3
 
 # 出力ファイルを指定
-python -m transcribe input.mp3 -o output.srt
+whisper-srt input.mp3 -o output.srt
 
 # 言語を指定（ISO-639-1コード）
-python -m transcribe input.mp3 --language en
+whisper-srt input.mp3 --language en
 
 # 詳細ログを有効化
-python -m transcribe input.mp3 -v
+whisper-srt input.mp3 -v
 ```
 
 ### オプション
