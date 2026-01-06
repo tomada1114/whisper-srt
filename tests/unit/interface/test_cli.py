@@ -61,14 +61,14 @@ class TestCLIParser:
 
         assert args.language == "en"
 
-    def test_parser_language_default_is_ja(self) -> None:
-        """Parser should default to ja (Japanese) language."""
+    def test_parser_language_default_is_en(self) -> None:
+        """Parser should default to en (English) language."""
         from transcribe.interface.cli import create_parser
 
         parser = create_parser()
         args = parser.parse_args(["input.mp3"])
 
-        assert args.language == "ja"
+        assert args.language == "en"
 
     def test_parser_accepts_verbose_flag(self) -> None:
         """Parser should accept -v/--verbose flag."""

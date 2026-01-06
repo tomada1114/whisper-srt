@@ -52,8 +52,8 @@ Examples:
     parser.add_argument(
         "--language",
         type=str,
-        default="ja",
-        help="Target language code for transcription (ISO-639-1, default: ja)",
+        default="en",
+        help="Target language code for transcription (ISO-639-1, default: en)",
     )
 
     parser.add_argument(
