@@ -4,32 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MP3音声ファイルをOpenAI Whisper API（whisper-1）でSRT字幕形式に変換するCLIツール。
+CLI tool to transcribe MP3 audio files to SRT subtitle format using OpenAI Whisper API (whisper-1).
 
 ## Commands
 
 ```bash
-# 開発環境セットアップ
+# Development setup
 source venv/bin/activate
 pip install -e ".[dev]"
 
-# CI実行（lint + type-check + test）
+# CI (lint + type-check + test)
 make ci
 
-# 個別実行
+# Individual commands
 make lint          # ruff check
 make format        # ruff format + check --fix
 make type-check    # mypy
 make test          # pytest
 make test-cov      # pytest with coverage
 
-# 単一テスト実行
+# Single test execution
 pytest tests/unit/domain/test_vocabulary.py -v
 pytest tests/unit/infrastructure/test_openai_client.py::test_transcribe_creates_srt_file -v
 
-# 文字起こし実行
+# Run transcription
 python -m transcribe input.mp3
-python -m transcribe input.mp3 -o output.srt --language en
+python -m transcribe input.mp3 -o output.srt --language ja
+whisper-srt input.mp3  # After pip install -e .
 ```
 
 ## Architecture
@@ -38,18 +39,19 @@ Onion Architecture with Protocol-based dependency injection:
 
 ```
 src/transcribe/
-├── domain/           # ドメイン層: vocabulary.py（組み込み語彙定義）
-├── application/      # アプリケーション層: protocols.py（TranscriptionClientProtocol）
-├── infrastructure/   # インフラ層: openai_client.py（OpenAI Whisper API実装）
-└── interface/        # インターフェース層: cli.py（CLIエントリーポイント）
+├── domain/           # Domain layer: vocabulary.py, vocabulary_loader.py
+├── application/      # Application layer: protocols.py (TranscriptionClientProtocol)
+├── infrastructure/   # Infrastructure layer: openai_client.py (OpenAI Whisper API)
+└── interface/        # Interface layer: cli.py (CLI entry point)
 ```
 
 **Key patterns:**
-- `TranscriptionClientProtocol`: 文字起こしクライアントの契約を定義。OpenAITranscriptionClientが実装
-- 語彙プロンプト: DEFAULT_VOCABULARY（AI/MCP技術用語）をWhisper APIのpromptパラメータに渡して認識精度を向上
+- `TranscriptionClientProtocol`: Defines transcription client contract. `OpenAITranscriptionClient` implements it
+- Vocabulary prompt: `DEFAULT_VOCABULARY` (AI/MCP technical terms) passed to Whisper API's prompt parameter for improved recognition accuracy
+- Custom vocabulary: Loaded from `~/.config/whisper-srt/vocabulary.txt` if exists (via `vocabulary_loader.py`)
 
 ## Testing
 
-- `tests/unit/`: ユニットテスト
-- `pytest-mock`でOpenAI APIをモック化（実際のAPI呼び出し不要）
-- markers: `@pytest.mark.unit`, `@pytest.mark.slow`
+- `tests/unit/`: Unit tests
+- OpenAI API mocked with `pytest-mock` (no actual API calls)
+- Markers: `@pytest.mark.unit`, `@pytest.mark.slow`
