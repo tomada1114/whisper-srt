@@ -1,36 +1,40 @@
 # whisper-srt
 
-MP3音声ファイルをOpenAI Whisper APIでSRT字幕形式に変換するCLIツール。
+CLI tool to transcribe MP3 audio files to SRT subtitle format using OpenAI Whisper API.
 
-## 特徴
+English | [日本語](README.ja.md)
 
-- OpenAI Whisper API (`whisper-1`) による高精度な文字起こし
-- SRT形式での直接出力（変換不要）
-- AI駆動開発用語の組み込み語彙でプロンプト認識精度を向上
-- ローカルモデル不要で高速起動
+## Features
 
-## 料金
+- Simple CLI for MP3 to SRT conversion
+- High-accuracy transcription via OpenAI Whisper API (`whisper-1`)
+- Automatic language detection or manual specification
+- Custom vocabulary support for improved accuracy
+- Built-in AI/tech terminology for better recognition
+- Non-interactive mode suitable for batch processing
 
-- $0.006/分（1時間あたり約50-60円）
-- 新規OpenAIアカウントには無料クレジット付与あり
+## Pricing
 
-## インストール
+- $0.006/minute (approximately $0.36/hour)
+- New OpenAI accounts receive free credits
 
-### pipx（推奨）
+## Installation
 
-依存関係の競合を避けた隔離環境でインストール:
+### Using pipx (Recommended)
+
+Install in an isolated environment to avoid dependency conflicts:
 
 ```bash
 pipx install whisper-srt
 ```
 
-### pip
+### Using pip
 
 ```bash
 pip install whisper-srt
 ```
 
-### ソースから（開発用）
+### From Source (Development)
 
 ```bash
 git clone https://github.com/tomada1114/whisper-srt.git
@@ -40,75 +44,132 @@ source venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-## APIキーの設定
+## Quick Start
 
-OpenAI APIキーを以下のいずれかの方法で設定:
+1. Set your OpenAI API key:
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
 
-### 方法1: 環境変数（pipx利用時に推奨）
+2. Transcribe an audio file:
+```bash
+whisper-srt audio.mp3
+```
+
+This creates `audio.srt` in the same directory.
+
+## Usage
+
+```bash
+# Basic usage (outputs input.srt)
+whisper-srt input.mp3
+
+# Specify output file
+whisper-srt input.mp3 -o output.srt
+
+# Specify language (ISO-639-1 code)
+whisper-srt input.mp3 --language ja
+
+# Use custom vocabulary file
+whisper-srt input.mp3 --vocabulary ~/my-vocab.txt
+
+# Disable vocabulary
+whisper-srt input.mp3 --no-vocabulary
+
+# Verbose output
+whisper-srt input.mp3 -v
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-o, --output` | Output SRT file path | `{input_filename}.srt` |
+| `--language` | Language code (ISO-639-1) | `ja` |
+| `--vocabulary` | Custom vocabulary file path | None |
+| `--no-vocabulary` | Disable all vocabulary prompts | Off |
+| `-v, --verbose` | Enable verbose logging | Off |
+
+## Configuration
+
+### API Key
+
+Set your OpenAI API key using one of these methods:
+
+#### Method 1: Environment Variable (Recommended for pipx)
 
 ```bash
 export OPENAI_API_KEY="sk-your-api-key-here"
 ```
 
-シェル設定ファイル（`~/.zshrc` や `~/.bashrc`）に追加すると永続化できます。
+Add to your shell config (`~/.zshrc` or `~/.bashrc`) to persist.
 
-### 方法2: .envファイル（プロジェクト単位）
+#### Method 2: .env File (Per-project)
 
 ```bash
 cp .env.example .env
-# .env を編集して OPENAI_API_KEY を設定
+# Edit .env and set OPENAI_API_KEY
 ```
 
-APIキーは [OpenAI Platform](https://platform.openai.com/api-keys) で取得できます。
+Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys).
 
-## 使い方
+### Custom Vocabulary
+
+Create `~/.config/whisper-srt/vocabulary.txt` with one word per line:
+
+```
+YouTube
+Podcast
+Tutorial
+# Comments start with #
+```
+
+### Built-in Vocabulary
+
+The following AI/tech terminology categories are built-in to improve recognition accuracy:
+
+- AI Services (Claude, ChatGPT, Gemini, etc.)
+- AI Coding Tools (Cursor, Windsurf, Cline, etc.)
+- MCP (Model Context Protocol, MCP Connector, etc.)
+- Claude Code Features (CLAUDE.md, sub-agents, hooks, etc.)
+- Development Methodologies (DDD, Onion Architecture, AI-driven development, etc.)
+
+## Supported Languages
+
+| Code | Language |
+|------|----------|
+| en | English |
+| ja | Japanese (default) |
+| zh | Chinese |
+| es | Spanish |
+| fr | French |
+| de | German |
+| ko | Korean |
+
+See [Whisper documentation](https://platform.openai.com/docs/guides/speech-to-text) for the full list of supported languages.
+
+## Development
 
 ```bash
-# 基本的な使い方（出力: input.srt）
-whisper-srt input.mp3
-
-# 出力ファイルを指定
-whisper-srt input.mp3 -o output.srt
-
-# 言語を指定（ISO-639-1コード）
-whisper-srt input.mp3 --language en
-
-# 詳細ログを有効化
-whisper-srt input.mp3 -v
+make help        # Show help
+make ci          # Run lint + type-check + test
+make test        # Run tests
+make test-cov    # Run tests with coverage
+make lint        # Run linter
+make format      # Format code
+make type-check  # Run type checker
 ```
 
-### オプション
-
-| オプション | 説明 | デフォルト |
-|-----------|------|-----------|
-| `-o, --output` | 出力SRTファイルパス | `{入力ファイル名}.srt` |
-| `--language` | 言語コード（ISO-639-1） | `ja` |
-| `-v, --verbose` | 詳細ログ出力 | オフ |
-
-## 組み込み語彙
-
-以下のカテゴリのAI/技術用語が組み込まれており、認識精度を向上させます：
-
-- AIサービス（Claude, ChatGPT, Gemini等）
-- AIコーディングツール（Cursor, Windsurf, Cline等）
-- MCP関連（Model Context Protocol, MCP Connector等）
-- Claude Code機能（CLAUDE.md, サブエージェント, hooks等）
-- 開発手法（DDD, Onion Architecture, AI駆動開発等）
-
-## 開発
-
-```bash
-make help        # ヘルプを表示
-make ci          # lint + type-check + test を実行
-make test        # テストを実行
-make test-cov    # カバレッジ付きでテストを実行
-make lint        # linterを実行
-make format      # コードをフォーマット
-make type-check  # 型チェックを実行
-```
-
-## 依存関係
+## Dependencies
 
 - Python 3.9+
 - openai
 - python-dotenv
+
+## License
+
+MIT
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
