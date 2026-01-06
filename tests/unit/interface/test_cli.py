@@ -25,14 +25,15 @@ SAMPLE_SRT = """1
 class TestCLIParser:
     """Tests for CLI argument parser."""
 
-    def test_parser_requires_input_file(self) -> None:
-        """Parser should require input file argument."""
+    def test_parser_accepts_no_arguments(self) -> None:
+        """Parser should accept no arguments (input is optional at parse level)."""
         from transcribe.interface.cli import create_parser
 
         parser = create_parser()
+        args = parser.parse_args([])
 
-        with pytest.raises(SystemExit):
-            parser.parse_args([])
+        assert args.input is None
+        assert args.init is False
 
     def test_parser_accepts_input_file(self) -> None:
         """Parser should accept input file argument."""
@@ -323,3 +324,60 @@ class TestCLIMain:
                                 mock_openai.audio.transcriptions.create.call_args.kwargs
                             )
                             assert call_kwargs["prompt"] == "default1, default2"
+
+
+@pytest.mark.unit
+class TestCLIInit:
+    """Tests for --init option."""
+
+    def test_parser_accepts_init_flag(self) -> None:
+        """Parser should accept --init flag."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["--init"])
+
+        assert args.init is True
+        assert args.input is None
+
+    def test_init_creates_vocabulary_file(self, tmp_path: Path) -> None:
+        """--init should create vocabulary file and return 0."""
+        vocab_path = tmp_path / "vocabulary.txt"
+
+        with patch(
+            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        ):
+            from transcribe.interface.cli import main
+
+            result = main(["--init"])
+
+        assert result == 0
+        assert vocab_path.exists()
+        content = vocab_path.read_text()
+        assert "Claude Code" in content
+        assert "OpenAI" in content
+        assert "Codex" in content
+
+    def test_init_skips_existing_file(self, tmp_path: Path) -> None:
+        """--init should skip if file already exists and return 0."""
+        vocab_path = tmp_path / "vocabulary.txt"
+        vocab_path.write_text("existing content")
+
+        with patch(
+            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        ):
+            from transcribe.interface.cli import main
+
+            result = main(["--init"])
+
+        assert result == 0
+        assert vocab_path.read_text() == "existing content"
+
+    def test_main_requires_input_when_not_init(self) -> None:
+        """main should require input file when --init is not used."""
+        from transcribe.interface.cli import main
+
+        with pytest.raises(SystemExit) as exc_info:
+            main([])
+
+        assert exc_info.value.code == 2  # argparse error exit code

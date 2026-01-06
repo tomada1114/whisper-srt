@@ -7,6 +7,8 @@ import pytest
 
 from transcribe.domain.vocabulary_loader import (
     DEFAULT_VOCABULARY_PATH,
+    SAMPLE_VOCABULARY,
+    initialize_vocabulary_file,
     load_default_vocabulary,
     load_vocabulary_from_file,
 )
@@ -146,3 +148,69 @@ class TestLoadDefaultVocabulary:
         # Then: default path is ~/.config/whisper-srt/vocabulary.txt
         expected = Path.home() / ".config" / "whisper-srt" / "vocabulary.txt"
         assert DEFAULT_VOCABULARY_PATH == expected
+
+
+@pytest.mark.unit
+class TestInitializeVocabularyFile:
+    """Tests for initialize_vocabulary_file function."""
+
+    def test_creates_vocabulary_file_when_not_exists(self, tmp_path: Path) -> None:
+        """Should create vocabulary file with sample content when it doesn't exist."""
+        # Given: a non-existent vocabulary path
+        vocab_path = tmp_path / ".config" / "whisper-srt" / "vocabulary.txt"
+
+        with patch(
+            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        ):
+            # When: initializing vocabulary file
+            created, message = initialize_vocabulary_file()
+
+        # Then: file is created with sample content
+        assert created is True
+        assert str(vocab_path) in message
+        assert vocab_path.exists()
+        content = vocab_path.read_text()
+        assert "Claude Code" in content
+        assert "OpenAI" in content
+        assert "Codex" in content
+
+    def test_creates_parent_directory_if_needed(self, tmp_path: Path) -> None:
+        """Should create parent directory if it doesn't exist."""
+        # Given: a path with non-existent parent directories
+        vocab_path = tmp_path / "deep" / "nested" / "vocabulary.txt"
+
+        with patch(
+            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        ):
+            # When: initializing vocabulary file
+            created, message = initialize_vocabulary_file()
+
+        # Then: parent directories are created
+        assert created is True
+        assert vocab_path.parent.exists()
+        assert vocab_path.exists()
+
+    def test_skips_when_file_already_exists(self, tmp_path: Path) -> None:
+        """Should skip creation and notify when file already exists."""
+        # Given: an existing vocabulary file
+        vocab_path = tmp_path / "vocabulary.txt"
+        vocab_path.write_text("existing content")
+
+        with patch(
+            "transcribe.domain.vocabulary_loader.DEFAULT_VOCABULARY_PATH", vocab_path
+        ):
+            # When: initializing vocabulary file
+            created, message = initialize_vocabulary_file()
+
+        # Then: file is not overwritten
+        assert created is False
+        assert "already exists" in message
+        assert vocab_path.read_text() == "existing content"
+
+    def test_sample_vocabulary_contains_expected_terms(self) -> None:
+        """Should have sample vocabulary with expected terms."""
+        # Then: sample vocabulary contains expected terms
+        assert "Claude Code" in SAMPLE_VOCABULARY
+        assert "OpenAI" in SAMPLE_VOCABULARY
+        assert "Codex" in SAMPLE_VOCABULARY
+        assert SAMPLE_VOCABULARY.startswith("#")  # Starts with comment
