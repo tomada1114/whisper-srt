@@ -164,9 +164,9 @@ class TestOpenAITranscriptionClientTranscribe:
             assert call_kwargs["model"] == "whisper-1"
             assert call_kwargs["response_format"] == "srt"
             assert call_kwargs["language"] == "ja"
-            # Verify prompt contains vocabulary terms
+            # Verify prompt is present (empty by default since DEFAULT_VOCABULARY is empty)
             assert "prompt" in call_kwargs
-            assert "Claude" in call_kwargs["prompt"]
+            assert call_kwargs["prompt"] == ""
 
     def test_transcribe_raises_runtime_error_on_api_failure(
         self, mock_openai_env: MagicMock
