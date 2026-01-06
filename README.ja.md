@@ -2,7 +2,7 @@
 
 MP3音声ファイルをOpenAI Whisper APIを使用してSRT字幕形式に変換するCLIツール。
 
-[English](README.md) | 日本語
+[English](https://github.com/tomada1114/whisper-srt/blob/main/README.md) | 日本語
 
 ## 特徴
 

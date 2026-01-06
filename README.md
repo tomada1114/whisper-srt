@@ -2,7 +2,7 @@
 
 CLI tool to transcribe MP3 audio files to SRT subtitle format using OpenAI Whisper API.
 
-English | [日本語](README.ja.md)
+English | [日本語](https://github.com/tomada1114/whisper-srt/blob/main/README.ja.md)
 
 ## Features
 
