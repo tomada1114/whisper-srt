@@ -8,7 +8,7 @@ Prepare the package for PyPI publication so users can install via `pip install w
 - [x] Package builds successfully
 - [x] README.md displays correctly on PyPI
 - [x] GitHub Actions workflow for automated publishing
-- [ ] Package successfully uploaded to PyPI
+- [x] Package successfully uploaded to PyPI (v0.2.0 - 2025-01-06)
 
 ## Implementation
 
