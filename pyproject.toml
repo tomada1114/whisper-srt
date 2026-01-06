@@ -1,5 +1,5 @@
 [project]
-name = "transcribe-srt"
+name = "whisper-srt"
 version = "0.1.0"
 description = "Transcribe MP3 audio to SRT subtitle format using Whisper"
 readme = "README.md"
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-transcribe-srt = "transcribe.interface.cli:main"
+whisper-srt = "transcribe.interface.cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

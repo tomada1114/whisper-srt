@@ -1,4 +1,4 @@
-# transcribe-srt
+# whisper-srt
 
 MP3音声ファイルをOpenAI Whisper APIでSRT字幕形式に変換するCLIツール。
 
