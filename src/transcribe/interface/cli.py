@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 
 from transcribe.application.protocols import TranscriptionClientProtocol
+from transcribe.domain.vocabulary_loader import (
+    load_default_vocabulary,
+    load_vocabulary_from_file,
+)
 from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
 
 logger = logging.getLogger(__name__)
@@ -69,6 +73,19 @@ Examples:
         version="%(prog)s 0.1.0",
     )
 
+    vocab_group = parser.add_mutually_exclusive_group()
+    vocab_group.add_argument(
+        "--vocabulary",
+        type=Path,
+        default=None,
+        help="Path to vocabulary file (one word per line)",
+    )
+    vocab_group.add_argument(
+        "--no-vocabulary",
+        action="store_true",
+        help="Disable vocabulary loading",
+    )
+
     return parser
 
 
@@ -105,9 +122,26 @@ def main(argv: list[str] | None = None) -> int:
     if output_path is None:
         output_path = input_path.with_suffix(".srt")
 
+    # Load vocabulary
+    if args.no_vocabulary:
+        vocabulary: tuple[str, ...] = ()
+    elif args.vocabulary:
+        try:
+            vocabulary = load_vocabulary_from_file(args.vocabulary)
+        except FileNotFoundError:
+            logger.error("Vocabulary file not found: %s", args.vocabulary)
+            return 1
+    else:
+        vocabulary = load_default_vocabulary()
+
+    if vocabulary:
+        logger.debug("Loaded %d vocabulary terms", len(vocabulary))
+
     # Create client and transcribe
     try:
-        client: TranscriptionClientProtocol = OpenAITranscriptionClient(language=args.language)
+        client: TranscriptionClientProtocol = OpenAITranscriptionClient(
+            language=args.language, vocabulary=vocabulary
+        )
     except ValueError as e:
         logger.error(str(e))
         return 1
@@ -119,11 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Transcription complete: {segment_count} segments saved to {output_path}")
         return 0
 
-    except FileNotFoundError as e:
-        logger.error("File not found: %s", e)
-        return 1
-
-    except RuntimeError as e:
+    except (FileNotFoundError, RuntimeError) as e:
         logger.error("%s", e)
         return 1
 

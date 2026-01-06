@@ -79,6 +79,35 @@ class TestCLIParser:
 
         assert args.verbose is True
 
+    def test_parser_accepts_vocabulary_option(self) -> None:
+        """Parser should accept --vocabulary option."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["input.mp3", "--vocabulary", "/path/to/vocab.txt"])
+
+        assert args.vocabulary == Path("/path/to/vocab.txt")
+
+    def test_parser_accepts_no_vocabulary_flag(self) -> None:
+        """Parser should accept --no-vocabulary flag."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["input.mp3", "--no-vocabulary"])
+
+        assert args.no_vocabulary is True
+
+    def test_parser_vocabulary_and_no_vocabulary_are_mutually_exclusive(self) -> None:
+        """Parser should reject --vocabulary and --no-vocabulary together."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                ["input.mp3", "--vocabulary", "/path/to/vocab.txt", "--no-vocabulary"]
+            )
+
 
 @pytest.mark.unit
 class TestCLIMain:
@@ -195,3 +224,102 @@ class TestCLIMain:
                         assert result == 0
                         call_kwargs = mock_openai.audio.transcriptions.create.call_args.kwargs
                         assert call_kwargs["language"] == "en"
+
+    def test_main_passes_vocabulary_to_client(self) -> None:
+        """main should pass custom vocabulary file to client."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+                        vocab_path = Path(tmpdir) / "vocab.txt"
+                        vocab_path.write_text("term1\nterm2\nterm3")
+
+                        result = main(
+                            [str(audio_path), "--vocabulary", str(vocab_path)]
+                        )
+
+                        assert result == 0
+                        call_kwargs = (
+                            mock_openai.audio.transcriptions.create.call_args.kwargs
+                        )
+                        assert call_kwargs["prompt"] == "term1, term2, term3"
+
+    def test_main_no_vocabulary_passes_empty_prompt(self) -> None:
+        """main should pass empty vocabulary when --no-vocabulary is used."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+
+                        result = main([str(audio_path), "--no-vocabulary"])
+
+                        assert result == 0
+                        call_kwargs = (
+                            mock_openai.audio.transcriptions.create.call_args.kwargs
+                        )
+                        assert call_kwargs["prompt"] == ""
+
+    def test_main_returns_1_for_nonexistent_vocabulary_file(self) -> None:
+        """main should return 1 if vocabulary file doesn't exist."""
+        from transcribe.interface.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "input.mp3"
+            audio_path.touch()
+
+            result = main(
+                [str(audio_path), "--vocabulary", "/nonexistent/vocab.txt"]
+            )
+
+            assert result == 1
+
+    def test_main_loads_default_vocabulary_when_exists(self) -> None:
+        """main should load default vocabulary file when it exists."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+                        vocab_file = Path(tmpdir) / "vocabulary.txt"
+                        vocab_file.write_text("default1\ndefault2")
+
+                        with patch(
+                            "transcribe.interface.cli.load_default_vocabulary",
+                            return_value=("default1", "default2"),
+                        ):
+                            from transcribe.interface.cli import main
+
+                            result = main([str(audio_path)])
+
+                            assert result == 0
+                            call_kwargs = (
+                                mock_openai.audio.transcriptions.create.call_args.kwargs
+                            )
+                            assert call_kwargs["prompt"] == "default1, default2"
