@@ -37,11 +37,25 @@ whisper-srt audio.mp3
 ## Usage
 
 ```bash
-whisper-srt input.mp3                    # Basic usage
+whisper-srt input.mp3                    # Basic usage (default: English)
 whisper-srt input.mp3 -o output.srt      # Specify output
-whisper-srt input.mp3 --language en      # Specify language
+whisper-srt input.mp3 --language ja      # Specify language (Japanese)
 whisper-srt --help                       # See all options
 ```
+
+## Supported Languages
+
+Default language is **English (`en`)**.
+
+Common language codes (ISO-639-1):
+| Code | Language | Code | Language |
+|------|----------|------|----------|
+| `en` | English | `ja` | Japanese |
+| `zh` | Chinese | `ko` | Korean |
+| `es` | Spanish | `fr` | French |
+| `de` | German | `pt` | Portuguese |
+
+See [OpenAI Whisper documentation](https://platform.openai.com/docs/guides/speech-to-text) for all supported languages.
 
 ## Custom Vocabulary
 
