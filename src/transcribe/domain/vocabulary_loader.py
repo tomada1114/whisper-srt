@@ -9,6 +9,32 @@ from pathlib import Path
 
 DEFAULT_VOCABULARY_PATH = Path.home() / ".config" / "whisper-srt" / "vocabulary.txt"
 
+SAMPLE_VOCABULARY = """\
+# Whisper SRT Vocabulary File
+# Add technical terms, proper nouns, and domain-specific words (one per line)
+# Lines starting with # are comments
+
+Claude Code
+OpenAI
+Codex
+"""
+
+
+def initialize_vocabulary_file() -> tuple[bool, str]:
+    """Initialize vocabulary file with sample content.
+
+    Returns:
+        Tuple of (created, message):
+        - (True, path_message) if file was created
+        - (False, skip_message) if file already exists
+    """
+    if DEFAULT_VOCABULARY_PATH.exists():
+        return (False, f"Vocabulary file already exists: {DEFAULT_VOCABULARY_PATH}")
+
+    DEFAULT_VOCABULARY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DEFAULT_VOCABULARY_PATH.write_text(SAMPLE_VOCABULARY, encoding="utf-8")
+    return (True, f"Created vocabulary file: {DEFAULT_VOCABULARY_PATH}")
+
 
 def load_vocabulary_from_file(path: Path) -> tuple[str, ...]:
     """Load vocabulary from a text file.

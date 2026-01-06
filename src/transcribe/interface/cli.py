@@ -14,6 +14,7 @@ from pathlib import Path
 from transcribe import __version__
 from transcribe.application.protocols import TranscriptionClientProtocol
 from transcribe.domain.vocabulary_loader import (
+    initialize_vocabulary_file,
     load_default_vocabulary,
     load_vocabulary_from_file,
 )
@@ -43,6 +44,8 @@ Examples:
     parser.add_argument(
         "input",
         type=Path,
+        nargs="?",
+        default=None,
         help="Input MP3 file path",
     )
 
@@ -72,6 +75,12 @@ Examples:
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
+    )
+
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help="Initialize vocabulary file at ~/.config/whisper-srt/vocabulary.txt",
     )
 
     vocab_group = parser.add_mutually_exclusive_group()
@@ -108,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
         level=log_level,
         format="%(levelname)s: %(message)s",
     )
+
+    # Handle --init option
+    if args.init:
+        created, message = initialize_vocabulary_file()
+        print(message)
+        return 0
+
+    # Validate input argument
+    if args.input is None:
+        parser.error("the following arguments are required: input")
 
     # Validate input file
     input_path: Path = args.input
