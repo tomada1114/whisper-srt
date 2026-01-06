@@ -4,10 +4,10 @@
 Prepare the package for PyPI publication so users can install via `pip install whisper-srt`.
 
 ## Acceptance Criteria
-- [ ] `pyproject.toml` metadata complete
-- [ ] Package builds successfully
-- [ ] README.md displays correctly on PyPI
-- [ ] GitHub Actions workflow for automated publishing
+- [x] `pyproject.toml` metadata complete
+- [x] Package builds successfully
+- [x] README.md displays correctly on PyPI
+- [x] GitHub Actions workflow for automated publishing
 - [ ] Package successfully uploaded to PyPI
 
 ## Implementation
@@ -22,7 +22,7 @@ description = "CLI tool to transcribe MP3 audio to SRT subtitles using OpenAI Wh
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "tomada", email = "your-email@example.com"}
+    {name = "tomada1114", email = "tmasuyama1114@gmail.com"}
 ]
 keywords = ["transcription", "whisper", "srt", "subtitles", "audio", "openai"]
 classifiers = [
@@ -40,9 +40,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/whisper-srt-from-mp3"
-Repository = "https://github.com/YOUR_USERNAME/whisper-srt-from-mp3"
-Issues = "https://github.com/YOUR_USERNAME/whisper-srt-from-mp3/issues"
+Homepage = "https://github.com/tomada1114/whisper-srt"
+Repository = "https://github.com/tomada1114/whisper-srt"
+Issues = "https://github.com/tomada1114/whisper-srt/issues"
 ```
 
 ### Create `.github/workflows/publish.yml`
@@ -89,11 +89,11 @@ twine upload dist/*
 ```
 
 ## Pre-publish Checklist
-- [ ] Version number updated
-- [ ] README.md is complete and renders correctly
-- [ ] All tests pass (`make ci`)
-- [ ] Package installs correctly locally (`pip install .`)
-- [ ] CLI works after installation (`whisper-srt --version`)
+- [x] Version number updated (0.1.0 → 0.2.0)
+- [x] README.md is complete and renders correctly
+- [x] All tests pass (`make ci`)
+- [x] Package installs correctly locally (`pip install .`)
+- [x] CLI works after installation (`whisper-srt --version`)
 
 ## Dependencies
 - Ticket #8 (README.md in English) should be completed first
