@@ -10,7 +10,6 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional, Tuple
 
 from dotenv import load_dotenv
 from openai import (
@@ -52,8 +51,8 @@ class OpenAITranscriptionClient:
 
     def __init__(
         self,
-        language: Optional[str] = None,
-        vocabulary: Optional[Tuple[str, ...]] = None,
+        language: str | None = None,
+        vocabulary: tuple[str, ...] | None = None,
     ) -> None:
         """Initialize the OpenAI transcription client.
 
@@ -78,20 +77,6 @@ class OpenAITranscriptionClient:
         self._client = OpenAI(api_key=api_key)
         self._language = language or self._DEFAULT_LANGUAGE
         self._vocabulary = vocabulary or DEFAULT_VOCABULARY
-
-    def _build_prompt(self) -> str:
-        """Build prompt string from vocabulary for Whisper API.
-
-        OpenAI Whisper API accepts a prompt parameter to guide transcription.
-        This helps with recognition of technical terms, names, and jargon.
-
-        Note: Prompt token limit is 244 tokens. Long vocabularies may be truncated.
-
-        Returns:
-            Prompt string containing vocabulary terms.
-        """
-        vocab_str = ", ".join(self._vocabulary)
-        return vocab_str
 
     def transcribe(
         self,
@@ -125,7 +110,8 @@ class OpenAITranscriptionClient:
         try:
             logger.info("Calling OpenAI Whisper API for %s...", audio_path)
 
-            prompt = self._build_prompt()
+            # Build prompt from vocabulary (token limit: 244 tokens, may be truncated)
+            prompt = ", ".join(self._vocabulary)
             logger.debug("Using prompt with %d vocabulary terms", len(self._vocabulary))
 
             with open(audio_path, "rb") as audio_file:
@@ -137,8 +123,6 @@ class OpenAITranscriptionClient:
                     prompt=prompt,
                 )
 
-        except FileNotFoundError:
-            raise
         except AuthenticationError as e:
             msg = f"OpenAI authentication failed. Check your OPENAI_API_KEY: {e}"
             logger.error(msg)

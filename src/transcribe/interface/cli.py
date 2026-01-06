@@ -11,6 +11,7 @@ import logging
 import sys
 from pathlib import Path
 
+from transcribe.application.protocols import TranscriptionClientProtocol
 from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
 
 logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.error("Input file not found: %s", input_path)
         return 1
 
-    if not input_path.suffix.lower() == ".mp3":
+    if input_path.suffix.lower() != ".mp3":
         logger.warning("Input file does not have .mp3 extension: %s", input_path)
 
     # Determine output path
@@ -106,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Create client and transcribe
     try:
-        client = OpenAITranscriptionClient(language=args.language)
+        client: TranscriptionClientProtocol = OpenAITranscriptionClient(language=args.language)
     except ValueError as e:
         logger.error(str(e))
         return 1

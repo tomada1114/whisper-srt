@@ -247,35 +247,23 @@ def build_vocabulary() -> tuple[str, ...]:
 
     Returns:
         A tuple containing all unique vocabulary terms from all categories.
-        Duplicates across categories are removed.
+        Duplicates across categories are removed while preserving order.
     """
-    all_terms: list[str] = []
-    categories = [
-        AI_SERVICES,
-        CODING_TOOLS,
-        MCP_TERMS,
-        CLAUDE_CODE_TERMS,
-        AI_FRAMEWORKS,
-        SERVICES,
-        TESTING_TERMS,
-        ARCHITECTURE_TERMS,
-        FRAMEWORKS,
-        IDE_TOOLS,
-        TOMADA_TERMS,
-    ]
-
-    for category in categories:
-        all_terms.extend(category)
-
-    # Remove duplicates while preserving order
-    seen: set[str] = set()
-    unique_terms: list[str] = []
-    for term in all_terms:
-        if term not in seen:
-            seen.add(term)
-            unique_terms.append(term)
-
-    return tuple(unique_terms)
+    all_terms = (
+        AI_SERVICES
+        + CODING_TOOLS
+        + MCP_TERMS
+        + CLAUDE_CODE_TERMS
+        + AI_FRAMEWORKS
+        + SERVICES
+        + TESTING_TERMS
+        + ARCHITECTURE_TERMS
+        + FRAMEWORKS
+        + IDE_TOOLS
+        + TOMADA_TERMS
+    )
+    # dict.fromkeys preserves insertion order and removes duplicates
+    return tuple(dict.fromkeys(all_terms))
 
 
 # Build the default vocabulary from all categories
