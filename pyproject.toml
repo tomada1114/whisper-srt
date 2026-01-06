@@ -1,27 +1,35 @@
 [project]
 name = "whisper-srt"
-version = "0.1.0"
-description = "Transcribe MP3 audio to SRT subtitle format using Whisper"
+version = "0.2.0"
+description = "CLI tool to transcribe MP3 audio to SRT subtitles using OpenAI Whisper API"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "tomada" }]
-keywords = ["whisper", "transcription", "srt", "subtitle", "audio"]
+authors = [{ name = "tomada1114", email = "tmasuyama1114@gmail.com" }]
+keywords = ["transcription", "whisper", "srt", "subtitles", "audio", "openai"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 
 dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/tomada1114/whisper-srt"
+Repository = "https://github.com/tomada1114/whisper-srt"
+Issues = "https://github.com/tomada1114/whisper-srt/issues"
 
 [project.optional-dependencies]
 dev = [

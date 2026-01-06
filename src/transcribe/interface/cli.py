@@ -11,6 +11,7 @@ import logging
 import sys
 from pathlib import Path
 
+from transcribe import __version__
 from transcribe.application.protocols import TranscriptionClientProtocol
 from transcribe.domain.vocabulary_loader import (
     load_default_vocabulary,
@@ -70,7 +71,7 @@ Examples:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 0.1.0",
+        version=f"%(prog)s {__version__}",
     )
 
     vocab_group = parser.add_mutually_exclusive_group()
