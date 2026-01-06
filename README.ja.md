@@ -34,6 +34,14 @@ uv tool install whisper-srt
 whisper-srt audio.mp3
 ```
 
+## アップグレード
+
+インストール済みの場合、最新版にアップグレード:
+
+```bash
+uv tool upgrade whisper-srt
+```
+
 ## 使い方
 
 ```bash

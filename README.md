@@ -34,6 +34,14 @@ uv tool install whisper-srt
 whisper-srt audio.mp3
 ```
 
+## Upgrade
+
+If you have whisper-srt installed, upgrade to the latest version:
+
+```bash
+uv tool upgrade whisper-srt
+```
+
 ## Usage
 
 ```bash
