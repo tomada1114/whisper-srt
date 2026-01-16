@@ -11,6 +11,7 @@ English | [日本語](https://github.com/tomada1114/whisper-srt/blob/main/README
 - Built-in AI/tech terminology for better recognition
 - Custom vocabulary support
 - Output as SRT subtitles or plain text
+- Batch processing: process entire directories recursively
 
 ## Quick Start
 
@@ -55,6 +56,7 @@ whisper-srt input.mp3                    # Basic usage (creates input.srt)
 whisper-srt input.mp3 -o output.srt      # Specify output file
 whisper-srt input.mp3 --language ja      # Specify language (Japanese)
 whisper-srt input.mp3 --text             # Output as plain text (creates input.txt)
+whisper-srt --dir ./recordings           # Process all MP3s in directory
 whisper-srt --help                       # See all options
 ```
 
@@ -67,6 +69,21 @@ whisper-srt audio.mp3              # Creates: audio.srt (subtitle format)
 whisper-srt audio.mp3 --text       # Creates: audio.txt (plain text)
 whisper-srt audio.mp3 --text -o output.txt  # Custom output path with text format
 ```
+
+### Batch Processing
+
+Use `--dir` to process all MP3 files in a directory recursively:
+
+```bash
+whisper-srt --dir ./recordings              # Process all MP3s as SRT
+whisper-srt --dir ./recordings --text       # Process all MP3s as text
+whisper-srt --dir ./recordings --language ja  # Process with Japanese
+```
+
+- Searches subdirectories recursively
+- Output files are saved alongside the original MP3 files
+- Existing output files are automatically skipped
+- Shows progress: `Processing: file.mp3` / `Skipped: file.mp3 (exists)`
 
 ## Initial Setup
 
