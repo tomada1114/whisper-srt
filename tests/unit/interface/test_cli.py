@@ -749,3 +749,16 @@ class TestCLIDirOption:
                         result = main(["--dir", tmpdir])
 
                         assert result == 1
+
+    def test_main_returns_1_when_api_key_missing_with_dir(self) -> None:
+        """main should return 1 if OPENAI_API_KEY is not set in --dir mode."""
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                from transcribe.interface.cli import main
+
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    (Path(tmpdir) / "audio.mp3").touch()
+
+                    result = main(["--dir", tmpdir])
+
+                    assert result == 1
