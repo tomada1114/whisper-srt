@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from transcribe import __version__
+from transcribe.application.batch_processor import process_directory
 from transcribe.application.protocols import ResponseFormat, TranscriptionClientProtocol
 from transcribe.domain.config_loader import (
     load_default_language,
@@ -44,6 +45,8 @@ Examples:
   whisper-srt input.mp3 -o output.srt         # Specify output file
   whisper-srt input.mp3 --language en         # English transcription
   whisper-srt input.mp3 --text                # Output as plain text: input.txt
+  whisper-srt --dir ./recordings              # Process all MP3s in directory
+  whisper-srt --dir ./recordings --text       # Process all MP3s as text
         """,
     )
 
@@ -108,6 +111,14 @@ Examples:
         help="Output as plain text instead of SRT",
     )
 
+    parser.add_argument(
+        "--dir",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Directory to process MP3 files recursively (output in same location)",
+    )
+
     return parser
 
 
@@ -157,24 +168,36 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\nLanguage setting saved: {language}")
         return 0
 
+    # Validate mutual exclusivity
+    if args.dir is not None and args.input is not None:
+        parser.error("--dir and input file are mutually exclusive")
+
+    if args.dir is not None and args.output is not None:
+        parser.error("--dir and --output are mutually exclusive")
+
     # Validate input argument
-    if args.input is None:
-        parser.error("the following arguments are required: input")
+    if args.dir is None and args.input is None:
+        parser.error("the following arguments are required: input or --dir")
 
-    # Validate input file
-    input_path: Path = args.input
-    if not input_path.exists():
-        logger.error("Input file not found: %s", input_path)
-        return 1
+    # Variables for single file mode
+    input_path: Path | None = None
+    output_path: Path | None = None
 
-    if input_path.suffix.lower() != ".mp3":
-        logger.warning("Input file does not have .mp3 extension: %s", input_path)
+    # Validate input file (single file mode only)
+    if args.input is not None:
+        input_path = args.input
+        if not input_path.exists():
+            logger.error("Input file not found: %s", input_path)
+            return 1
 
-    # Determine output path
-    output_path: Path | None = args.output
-    if output_path is None:
-        extension = ".txt" if args.text else ".srt"
-        output_path = input_path.with_suffix(extension)
+        if input_path.suffix.lower() != ".mp3":
+            logger.warning("Input file does not have .mp3 extension: %s", input_path)
+
+        # Determine output path
+        output_path = args.output
+        if output_path is None:
+            extension = ".txt" if args.text else ".srt"
+            output_path = input_path.with_suffix(extension)
 
     # Load vocabulary
     vocabulary = _load_vocabulary(args)
@@ -188,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     language = args.language if args.language else load_default_language()
     logger.debug("Using language: %s", language)
 
-    # Create client and transcribe
+    # Create client
     try:
         client: TranscriptionClientProtocol = OpenAITranscriptionClient(
             language=language, vocabulary=vocabulary
@@ -197,11 +220,30 @@ def main(argv: list[str] | None = None) -> int:
         logger.error(str(e))
         return 1
 
+    response_format: ResponseFormat = "text" if args.text else "srt"
+
+    # Directory processing mode
+    if args.dir is not None:
+        return _process_directory(args.dir, client, response_format)
+
+    # Single file processing mode
+    assert input_path is not None  # Guaranteed by earlier validation
+    assert output_path is not None  # Guaranteed by earlier validation
+    return _process_single_file(input_path, output_path, client, response_format, args.text)
+
+
+def _process_single_file(
+    input_path: Path,
+    output_path: Path,
+    client: TranscriptionClientProtocol,
+    response_format: ResponseFormat,
+    is_text: bool,
+) -> int:
+    """Process single file and return exit code."""
     try:
         logger.info("Transcribing %s...", input_path)
-        response_format: ResponseFormat = "text" if args.text else "srt"
         segment_count = client.transcribe(input_path, output_path, response_format)
-        if args.text:
+        if is_text:
             logger.info("Transcription saved to %s", output_path)
             print(f"Transcription complete: saved to {output_path}")
         else:
@@ -216,6 +258,27 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         logger.warning("Interrupted by user")
         return 130
+
+
+def _process_directory(
+    directory: Path,
+    client: TranscriptionClientProtocol,
+    response_format: ResponseFormat,
+) -> int:
+    """Process directory and return exit code."""
+    try:
+        result = process_directory(directory, client, response_format)
+    except (FileNotFoundError, NotADirectoryError) as e:
+        logger.error(str(e))
+        return 1
+    except KeyboardInterrupt:
+        logger.warning("Interrupted by user")
+        return 130
+
+    # Summary
+    print(f"\n完了: {result.processed}件処理, {result.skipped}件スキップ, {result.failed}件失敗")
+
+    return 1 if result.failed > 0 else 0
 
 
 if __name__ == "__main__":
