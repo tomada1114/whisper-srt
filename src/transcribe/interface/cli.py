@@ -229,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     # Single file processing mode
     assert input_path is not None  # Guaranteed by earlier validation
     assert output_path is not None  # Guaranteed by earlier validation
-    return _process_single_file(input_path, output_path, client, response_format, args.text)
+    return _process_single_file(input_path, output_path, client, response_format)
 
 
 def _process_single_file(
@@ -237,13 +237,12 @@ def _process_single_file(
     output_path: Path,
     client: TranscriptionClientProtocol,
     response_format: ResponseFormat,
-    is_text: bool,
 ) -> int:
     """Process single file and return exit code."""
     try:
         logger.info("Transcribing %s...", input_path)
         segment_count = client.transcribe(input_path, output_path, response_format)
-        if is_text:
+        if response_format == "text":
             logger.info("Transcription saved to %s", output_path)
             print(f"Transcription complete: saved to {output_path}")
         else:
