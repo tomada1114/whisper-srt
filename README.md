@@ -1,15 +1,16 @@
 # whisper-srt
 
-CLI tool to transcribe MP3 audio files to SRT subtitle format using OpenAI Whisper API.
+CLI tool to transcribe MP3 audio files to SRT subtitle or plain text format using OpenAI Whisper API.
 
 English | [日本語](https://github.com/tomada1114/whisper-srt/blob/main/README.ja.md)
 
 ## Features
 
-- Simple CLI for MP3 to SRT conversion
+- Simple CLI for MP3 to SRT or plain text conversion
 - High-accuracy transcription via OpenAI Whisper API (`whisper-1`)
 - Built-in AI/tech terminology for better recognition
 - Custom vocabulary support
+- Output as SRT subtitles or plain text
 
 ## Quick Start
 
@@ -50,10 +51,21 @@ uv tool upgrade whisper-srt
 ## Usage
 
 ```bash
-whisper-srt input.mp3                    # Basic usage (default: English)
-whisper-srt input.mp3 -o output.srt      # Specify output
+whisper-srt input.mp3                    # Basic usage (creates input.srt)
+whisper-srt input.mp3 -o output.srt      # Specify output file
 whisper-srt input.mp3 --language ja      # Specify language (Japanese)
+whisper-srt input.mp3 --text             # Output as plain text (creates input.txt)
 whisper-srt --help                       # See all options
+```
+
+### Output Formats
+
+By default, transcription is saved as **SRT subtitle format** with timestamps. Use `--text` to save as plain text instead:
+
+```bash
+whisper-srt audio.mp3              # Creates: audio.srt (subtitle format)
+whisper-srt audio.mp3 --text       # Creates: audio.txt (plain text)
+whisper-srt audio.mp3 --text -o output.txt  # Custom output path with text format
 ```
 
 ## Initial Setup

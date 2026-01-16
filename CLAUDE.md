@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CLI tool to transcribe MP3 audio files to SRT subtitle format using OpenAI Whisper API (whisper-1).
+CLI tool to transcribe MP3 audio files to SRT subtitle or plain text format using OpenAI Whisper API (whisper-1).
 
 ## Commands
 
@@ -28,8 +28,9 @@ pytest tests/unit/domain/test_vocabulary.py -v
 pytest tests/unit/infrastructure/test_openai_client.py::test_transcribe_creates_srt_file -v
 
 # Run transcription
-python -m transcribe input.mp3
-python -m transcribe input.mp3 -o output.srt --language ja
+python -m transcribe input.mp3                        # Creates SRT
+python -m transcribe input.mp3 -o output.srt --language ja  # Japanese SRT
+python -m transcribe input.mp3 --text                 # Creates plain text
 whisper-srt input.mp3  # After pip install -e .
 ```
 
@@ -46,9 +47,11 @@ src/transcribe/
 ```
 
 **Key patterns:**
-- `TranscriptionClientProtocol`: Defines transcription client contract. `OpenAITranscriptionClient` implements it
+- `TranscriptionClientProtocol`: Defines transcription client contract with `response_format` parameter. `OpenAITranscriptionClient` implements it
+- Response formats: Protocol supports "srt" (subtitles with timestamps) and "text" (plain transcription)
 - Vocabulary prompt: `DEFAULT_VOCABULARY` (AI/MCP technical terms) passed to Whisper API's prompt parameter for improved recognition accuracy
 - Custom vocabulary: Loaded from `~/.config/whisper-srt/vocabulary.txt` if exists (via `vocabulary_loader.py`)
+- CLI `--text` flag: Passes `response_format="text"` to client, outputs plain text instead of SRT subtitles
 
 ## Testing
 
