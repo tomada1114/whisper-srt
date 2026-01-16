@@ -110,21 +110,23 @@ def process_directory(
     errors: list[tuple[Path, str]] = []
 
     for mp3_path in mp3_files:
+        output_path = get_output_path(mp3_path, response_format)
+
         # Check skip condition
-        if should_skip_file(mp3_path, response_format):
-            output_path = get_output_path(mp3_path, response_format)
+        if output_path.exists():
             print(f"スキップ: {mp3_path.name}（{output_path.name} 既存）")
             skipped += 1
             continue
 
         # Process file
         print(f"処理中: {mp3_path.name}")
-        output_path = get_output_path(mp3_path, response_format)
 
         try:
             client.transcribe(mp3_path, output_path, response_format)
             processed += 1
-        except (FileNotFoundError, RuntimeError) as e:
+        except KeyboardInterrupt:
+            raise
+        except Exception as e:
             error_msg = str(e)
             logger.error("Failed to process %s: %s", mp3_path, error_msg)
             print(f"エラー: {mp3_path.name} - {error_msg}")
