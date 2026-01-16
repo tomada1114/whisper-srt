@@ -547,3 +547,205 @@ class TestCLIInit:
             main([])
 
         assert exc_info.value.code == 2  # argparse error exit code
+
+
+@pytest.mark.unit
+class TestCLIDirOption:
+    """Tests for --dir option."""
+
+    def test_parser_accepts_dir_option(self) -> None:
+        """Parser should accept --dir option."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["--dir", "/some/directory"])
+
+        assert args.dir == Path("/some/directory")
+
+    def test_parser_dir_default_is_none(self) -> None:
+        """Parser should default --dir to None."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["input.mp3"])
+
+        assert args.dir is None
+
+    def test_main_rejects_dir_and_input_together(self) -> None:
+        """main should reject --dir and input file together."""
+        from transcribe.interface.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "input.mp3"
+            audio_path.touch()
+
+            with pytest.raises(SystemExit) as exc_info:
+                main([str(audio_path), "--dir", tmpdir])
+
+            assert exc_info.value.code == 2
+
+    def test_main_rejects_dir_and_output_together(self) -> None:
+        """main should reject --dir and --output together."""
+        from transcribe.interface.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with pytest.raises(SystemExit) as exc_info:
+                main(["--dir", tmpdir, "-o", "output.srt"])
+
+            assert exc_info.value.code == 2
+
+    def test_main_returns_1_for_nonexistent_directory(self) -> None:
+        """main should return 1 if directory doesn't exist."""
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=MagicMock(),
+                ):
+                    from transcribe.interface.cli import main
+
+                    result = main(["--dir", "/nonexistent/directory"])
+
+                    assert result == 1
+
+    def test_main_processes_directory_successfully(self) -> None:
+        """main should process directory and return 0 on success."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        # Create MP3 files
+                        (Path(tmpdir) / "audio1.mp3").touch()
+                        (Path(tmpdir) / "audio2.mp3").touch()
+
+                        result = main(["--dir", tmpdir])
+
+                        assert result == 0
+                        # Check output files were created
+                        assert (Path(tmpdir) / "audio1.srt").exists()
+                        assert (Path(tmpdir) / "audio2.srt").exists()
+
+    def test_main_skips_existing_output_files(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """main should skip files with existing output."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        # Create MP3 files with one existing SRT
+                        (Path(tmpdir) / "audio1.mp3").touch()
+                        (Path(tmpdir) / "audio1.srt").write_text("existing")
+                        (Path(tmpdir) / "audio2.mp3").touch()
+
+                        result = main(["--dir", tmpdir])
+
+                        assert result == 0
+                        # audio1.srt should not be overwritten
+                        assert (Path(tmpdir) / "audio1.srt").read_text() == "existing"
+                        # audio2.srt should be created
+                        assert (Path(tmpdir) / "audio2.srt").exists()
+
+                        # Check skip message
+                        captured = capsys.readouterr()
+                        assert "スキップ" in captured.out
+                        assert "audio1.mp3" in captured.out
+
+    def test_main_with_dir_and_text_flag(self) -> None:
+        """main should create .txt files when --dir and --text are used."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = "Plain text output."
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        (Path(tmpdir) / "audio.mp3").touch()
+
+                        result = main(["--dir", tmpdir, "--text"])
+
+                        assert result == 0
+                        assert (Path(tmpdir) / "audio.txt").exists()
+                        assert not (Path(tmpdir) / "audio.srt").exists()
+
+    def test_main_returns_0_for_empty_directory(self) -> None:
+        """main should return 0 for directory with no MP3 files."""
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=MagicMock(),
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        result = main(["--dir", tmpdir])
+
+                        assert result == 0
+
+    def test_main_prints_summary(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """main should print summary after directory processing."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        (Path(tmpdir) / "audio.mp3").touch()
+
+                        main(["--dir", tmpdir])
+
+                        captured = capsys.readouterr()
+                        assert "完了" in captured.out
+                        assert "1件処理" in captured.out
+
+    def test_main_returns_1_when_some_files_fail(self) -> None:
+        """main should return 1 when some files fail to process."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.side_effect = [
+            Exception("API error"),  # First file fails
+            SAMPLE_SRT,  # Second file succeeds
+        ]
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        (Path(tmpdir) / "audio1.mp3").touch()
+                        (Path(tmpdir) / "audio2.mp3").touch()
+
+                        result = main(["--dir", tmpdir])
+
+                        assert result == 1
