@@ -220,6 +220,80 @@ class TestOpenAITranscriptionClientTranscribe:
             assert count == 0
             assert output_path.exists()
 
+    def test_transcribe_with_text_format(self, mock_openai_env: MagicMock) -> None:
+        """transcribe should support text format output."""
+        from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
+
+        mock_openai_env.audio.transcriptions.create.return_value = "Plain text output."
+        client = OpenAITranscriptionClient()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "source.mp3"
+            audio_path.touch()
+            output_path = Path(tmpdir) / "output.txt"
+
+            count = client.transcribe(audio_path, output_path, response_format="text")
+
+            assert count == 0
+            assert output_path.exists()
+            assert output_path.read_text() == "Plain text output."
+
+    def test_transcribe_text_format_calls_api_correctly(
+        self, mock_openai_env: MagicMock
+    ) -> None:
+        """transcribe should call API with text format when specified."""
+        from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
+
+        mock_openai_env.audio.transcriptions.create.return_value = "Plain text output."
+        client = OpenAITranscriptionClient()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "source.mp3"
+            audio_path.touch()
+            output_path = Path(tmpdir) / "output.txt"
+
+            client.transcribe(audio_path, output_path, response_format="text")
+
+            call_kwargs = mock_openai_env.audio.transcriptions.create.call_args.kwargs
+            assert call_kwargs["response_format"] == "text"
+
+    def test_transcribe_text_format_handles_empty_response(
+        self, mock_openai_env: MagicMock
+    ) -> None:
+        """transcribe should handle empty text response."""
+        from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
+
+        mock_openai_env.audio.transcriptions.create.return_value = ""
+        client = OpenAITranscriptionClient()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "source.mp3"
+            audio_path.touch()
+            output_path = Path(tmpdir) / "output.txt"
+
+            count = client.transcribe(audio_path, output_path, response_format="text")
+
+            assert count == 0
+            assert output_path.exists()
+            assert output_path.read_text() == ""
+
+    def test_transcribe_text_format_handles_api_error(
+        self, mock_openai_env: MagicMock
+    ) -> None:
+        """transcribe should handle API errors with text format."""
+        from transcribe.infrastructure.openai_client import OpenAITranscriptionClient
+
+        mock_openai_env.audio.transcriptions.create.side_effect = Exception("API error")
+        client = OpenAITranscriptionClient()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "source.mp3"
+            audio_path.touch()
+            output_path = Path(tmpdir) / "output.txt"
+
+            with pytest.raises(RuntimeError, match="API error"):
+                client.transcribe(audio_path, output_path, response_format="text")
+
 
 @pytest.mark.unit
 class TestOpenAITranscriptionClientErrorHandling:

@@ -109,6 +109,24 @@ class TestCLIParser:
                 ["input.mp3", "--vocabulary", "/path/to/vocab.txt", "--no-vocabulary"]
             )
 
+    def test_parser_accepts_text_flag(self) -> None:
+        """Parser should accept --text flag."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["input.mp3", "--text"])
+
+        assert args.text is True
+
+    def test_parser_text_flag_default_is_false(self) -> None:
+        """Parser should default --text to False."""
+        from transcribe.interface.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["input.mp3"])
+
+        assert args.text is False
+
 
 @pytest.mark.unit
 class TestCLIMain:
@@ -324,6 +342,100 @@ class TestCLIMain:
                                 mock_openai.audio.transcriptions.create.call_args.kwargs
                             )
                             assert call_kwargs["prompt"] == "default1, default2"
+
+    def test_main_creates_txt_output_with_text_flag(self) -> None:
+        """main should create .txt output file when --text flag is used."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = "Plain text output."
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+
+                        result = main([str(audio_path), "--text"])
+
+                        assert result == 0
+                        expected_output = Path(tmpdir) / "input.txt"
+                        assert expected_output.exists()
+                        assert expected_output.read_text() == "Plain text output."
+
+    def test_main_passes_text_format_to_api(self) -> None:
+        """main should pass text format to API when --text flag is used."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = "Plain text output."
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+
+                        result = main([str(audio_path), "--text"])
+
+                        assert result == 0
+                        call_kwargs = mock_openai.audio.transcriptions.create.call_args.kwargs
+                        assert call_kwargs["response_format"] == "text"
+
+    def test_main_returns_1_on_api_error_with_text_flag(self) -> None:
+        """main should return 1 on API error when using --text flag."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.side_effect = Exception("API error")
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+
+                        result = main([str(audio_path), "--text"])
+
+                        assert result == 1
+
+    def test_main_uses_specified_output_path_with_text_flag(self) -> None:
+        """main should use specified output path with --text flag."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = "Plain text output."
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.mp3"
+                        audio_path.touch()
+                        output_path = Path(tmpdir) / "custom.txt"
+
+                        result = main(
+                            [str(audio_path), "--text", "-o", str(output_path)]
+                        )
+
+                        assert result == 0
+                        assert output_path.exists()
+                        assert output_path.read_text() == "Plain text output."
 
 
 @pytest.mark.unit
