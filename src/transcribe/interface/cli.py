@@ -1,7 +1,7 @@
 """Command-line interface for transcription.
 
 This module provides the CLI entry point for transcribing
-MP3 audio files to SRT subtitle format using OpenAI Whisper API.
+MP3 audio files to SRT subtitle or plain text format using OpenAI Whisper API.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from transcribe import __version__
-from transcribe.application.protocols import TranscriptionClientProtocol
+from transcribe.application.protocols import ResponseFormat, TranscriptionClientProtocol
 from transcribe.domain.config_loader import (
     load_default_language,
     prompt_language_selection,
@@ -43,6 +43,7 @@ Examples:
   whisper-srt input.mp3                       # Output: input.srt
   whisper-srt input.mp3 -o output.srt         # Specify output file
   whisper-srt input.mp3 --language en         # English transcription
+  whisper-srt input.mp3 --text                # Output as plain text: input.txt
         """,
     )
 
@@ -59,7 +60,7 @@ Examples:
         "--output",
         type=Path,
         default=None,
-        help="Output SRT file path (default: {input_stem}.srt)",
+        help="Output file path (default: {input_stem}.srt, or .txt with --text)",
     )
 
     parser.add_argument(
@@ -101,7 +102,30 @@ Examples:
         help="Disable vocabulary loading",
     )
 
+    parser.add_argument(
+        "--text",
+        action="store_true",
+        help="Output as plain text instead of SRT",
+    )
+
     return parser
+
+
+def _load_vocabulary(args: argparse.Namespace) -> tuple[str, ...] | None:
+    """Load vocabulary based on CLI arguments.
+
+    Returns:
+        Vocabulary tuple, or None if vocabulary file not found.
+    """
+    if args.no_vocabulary:
+        return ()
+    if args.vocabulary:
+        try:
+            return load_vocabulary_from_file(args.vocabulary)
+        except FileNotFoundError:
+            logger.error("Vocabulary file not found: %s", args.vocabulary)
+            return None
+    return load_default_vocabulary()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -149,19 +173,13 @@ def main(argv: list[str] | None = None) -> int:
     # Determine output path
     output_path: Path | None = args.output
     if output_path is None:
-        output_path = input_path.with_suffix(".srt")
+        extension = ".txt" if args.text else ".srt"
+        output_path = input_path.with_suffix(extension)
 
     # Load vocabulary
-    if args.no_vocabulary:
-        vocabulary: tuple[str, ...] = ()
-    elif args.vocabulary:
-        try:
-            vocabulary = load_vocabulary_from_file(args.vocabulary)
-        except FileNotFoundError:
-            logger.error("Vocabulary file not found: %s", args.vocabulary)
-            return 1
-    else:
-        vocabulary = load_default_vocabulary()
+    vocabulary = _load_vocabulary(args)
+    if vocabulary is None:
+        return 1
 
     if vocabulary:
         logger.debug("Loaded %d vocabulary terms", len(vocabulary))
@@ -181,9 +199,14 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         logger.info("Transcribing %s...", input_path)
-        segment_count = client.transcribe(input_path, output_path)
-        logger.info("Generated %d segments: %s", segment_count, output_path)
-        print(f"Transcription complete: {segment_count} segments saved to {output_path}")
+        response_format: ResponseFormat = "text" if args.text else "srt"
+        segment_count = client.transcribe(input_path, output_path, response_format)
+        if args.text:
+            logger.info("Transcription saved to %s", output_path)
+            print(f"Transcription complete: saved to {output_path}")
+        else:
+            logger.info("Generated %d segments: %s", segment_count, output_path)
+            print(f"Transcription complete: {segment_count} segments saved to {output_path}")
         return 0
 
     except (FileNotFoundError, RuntimeError) as e:
