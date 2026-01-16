@@ -7,9 +7,11 @@ Infrastructure implementations must conform to these protocols.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
-__all__ = ["TranscriptionClientProtocol"]
+ResponseFormat = Literal["srt", "text"]
+
+__all__ = ["TranscriptionClientProtocol", "ResponseFormat"]
 
 
 class TranscriptionClientProtocol(Protocol):
@@ -36,20 +38,24 @@ class TranscriptionClientProtocol(Protocol):
         self,
         audio_path: Path,
         output_path: Path,
+        response_format: ResponseFormat = "srt",
     ) -> int:
-        """Transcribe audio file to SRT format.
+        """Transcribe audio file to specified format.
 
-        Converts an audio file (MP3) to SRT subtitle format using
-        speech-to-text transcription with timing information.
+        Converts an audio file (MP3) to SRT subtitle or plain text format
+        using speech-to-text transcription.
 
         Args:
             audio_path: Path to the input audio file (MP3 format).
                 Must be a valid Path object pointing to an existing file.
-            output_path: Path where the SRT file will be saved.
+            output_path: Path where the output file will be saved.
                 Parent directory must exist.
+            response_format: Output format - "srt" for subtitles with timestamps,
+                "text" for plain text. Default is "srt".
 
         Returns:
-            Number of subtitle segments generated.
+            Number of subtitle segments generated (for SRT format),
+            or 0 for text format.
 
         Raises:
             FileNotFoundError: If audio_path does not exist.
@@ -62,8 +68,8 @@ class TranscriptionClientProtocol(Protocol):
             - Valid API credentials are configured (e.g., OPENAI_API_KEY)
 
         Postconditions:
-            - SRT file is created at output_path
-            - SRT file contains valid subtitle segments with timestamps
-            - Returns positive integer (segment count)
+            - Output file is created at output_path
+            - For SRT: file contains valid subtitle segments with timestamps
+            - Returns segment count (SRT) or 0 (text)
         """
         ...

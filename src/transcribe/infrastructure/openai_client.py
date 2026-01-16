@@ -20,6 +20,7 @@ from openai import (
     RateLimitError,
 )
 
+from transcribe.application.protocols import ResponseFormat
 from transcribe.domain.vocabulary import DEFAULT_VOCABULARY
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,8 @@ class OpenAITranscriptionClient:
     """Transcription client using OpenAI Whisper API.
 
     This implementation uses OpenAI's cloud-based Whisper API (whisper-1),
-    which directly outputs SRT format without local model loading.
+    which supports multiple output formats (SRT subtitles, plain text)
+    without local model loading.
 
     Configuration:
         - Model: whisper-1 (OpenAI's hosted Whisper)
@@ -82,18 +84,19 @@ class OpenAITranscriptionClient:
         self,
         audio_path: Path,
         output_path: Path,
+        response_format: ResponseFormat = "srt",
     ) -> int:
-        """Transcribe audio file to SRT format using OpenAI Whisper API.
+        """Transcribe audio file using OpenAI Whisper API.
 
-        Calls OpenAI's Whisper API with response_format="srt" to get
-        SRT-formatted subtitles directly.
+        Calls OpenAI's Whisper API with the specified response format.
 
         Args:
             audio_path: Path to the input audio file (MP3 format).
-            output_path: Path where the SRT file will be saved.
+            output_path: Path where the output file will be saved.
+            response_format: Output format - "srt" for subtitles, "text" for plain text.
 
         Returns:
-            Number of subtitle segments generated.
+            Number of subtitle segments generated (for SRT), or 0 (for text).
 
         Raises:
             FileNotFoundError: If audio_path does not exist.
@@ -118,7 +121,7 @@ class OpenAITranscriptionClient:
                 transcript = self._client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file,
-                    response_format="srt",
+                    response_format=response_format,
                     language=self._language,
                     prompt=prompt,
                 )
@@ -144,7 +147,7 @@ class OpenAITranscriptionClient:
             logger.exception(msg)
             raise RuntimeError(msg) from e
 
-        # Write SRT content to file (separate try block for I/O errors)
+        # Write transcript content to file (separate try block for I/O errors)
         try:
             output_path.write_text(transcript, encoding="utf-8")
         except OSError as e:
@@ -160,13 +163,16 @@ class OpenAITranscriptionClient:
                 audio_path,
             )
 
-        # Count segments (SRT segments start with a number on its own line)
-        segment_count = len(re.findall(r"^\d+$", transcript, re.MULTILINE))
-
-        logger.info(
-            "Transcription complete: %d segments saved to %s",
-            segment_count,
-            output_path,
-        )
+        # Count segments (SRT only - segments start with a number on its own line)
+        if response_format == "srt":
+            segment_count = len(re.findall(r"^\d+$", transcript, re.MULTILINE))
+            logger.info(
+                "Transcription complete: %d segments saved to %s",
+                segment_count,
+                output_path,
+            )
+        else:
+            segment_count = 0
+            logger.info("Transcription complete: saved to %s", output_path)
 
         return segment_count
