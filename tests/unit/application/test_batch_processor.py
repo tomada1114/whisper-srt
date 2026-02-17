@@ -7,7 +7,7 @@ import pytest
 
 from transcribe.application.batch_processor import (
     BatchResult,
-    find_mp3_files,
+    find_audio_files,
     get_output_path,
     process_directory,
     should_skip_file,
@@ -16,8 +16,8 @@ from transcribe.application.protocols import TranscriptionClientProtocol
 
 
 @pytest.mark.unit
-class TestFindMp3Files:
-    """Tests for find_mp3_files function."""
+class TestFindAudioFiles:
+    """Tests for find_audio_files function."""
 
     def test_finds_mp3_files_in_directory(self, tmp_path: Path) -> None:
         """Should find MP3 files in a directory."""
@@ -26,75 +26,108 @@ class TestFindMp3Files:
         (tmp_path / "audio2.mp3").touch()
         (tmp_path / "other.txt").touch()
 
-        # When: finding MP3 files
-        result = find_mp3_files(tmp_path)
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
 
-        # Then: only MP3 files are returned
+        # Then: only supported audio files are returned
         assert len(result) == 2
         assert all(f.suffix == ".mp3" for f in result)
 
-    def test_finds_mp3_files_recursively(self, tmp_path: Path) -> None:
-        """Should find MP3 files in subdirectories."""
-        # Given: a directory with nested MP3 files
+    def test_finds_webm_files_in_directory(self, tmp_path: Path) -> None:
+        """Should find WebM files in a directory."""
+        # Given: a directory with WebM files
+        (tmp_path / "audio1.webm").touch()
+        (tmp_path / "audio2.webm").touch()
+        (tmp_path / "other.txt").touch()
+
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
+
+        # Then: webm files are returned
+        assert len(result) == 2
+        assert all(f.suffix == ".webm" for f in result)
+
+    def test_finds_multiple_formats_in_directory(self, tmp_path: Path) -> None:
+        """Should find all supported audio formats in a directory."""
+        # Given: a directory with various audio formats
+        (tmp_path / "audio.mp3").touch()
+        (tmp_path / "audio.webm").touch()
+        (tmp_path / "audio.wav").touch()
+        (tmp_path / "audio.m4a").touch()
+        (tmp_path / "audio.ogg").touch()
+        (tmp_path / "audio.flac").touch()
+        (tmp_path / "document.txt").touch()
+        (tmp_path / "image.png").touch()
+
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
+
+        # Then: all supported audio files are returned, non-audio files excluded
+        assert len(result) == 6
+
+    def test_finds_audio_files_recursively(self, tmp_path: Path) -> None:
+        """Should find audio files in subdirectories."""
+        # Given: a directory with nested audio files of different formats
         subdir = tmp_path / "subdir"
         subdir.mkdir()
         (tmp_path / "audio1.mp3").touch()
-        (subdir / "audio2.mp3").touch()
+        (subdir / "audio2.webm").touch()
 
-        # When: finding MP3 files
-        result = find_mp3_files(tmp_path)
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
 
-        # Then: MP3 files from all levels are returned
+        # Then: audio files from all levels are returned
         assert len(result) == 2
 
     def test_returns_sorted_list(self, tmp_path: Path) -> None:
-        """Should return MP3 files in sorted order."""
-        # Given: MP3 files in unsorted order
+        """Should return audio files in sorted order."""
+        # Given: audio files in unsorted order
         (tmp_path / "z_audio.mp3").touch()
-        (tmp_path / "a_audio.mp3").touch()
-        (tmp_path / "m_audio.mp3").touch()
+        (tmp_path / "a_audio.webm").touch()
+        (tmp_path / "m_audio.wav").touch()
 
-        # When: finding MP3 files
-        result = find_mp3_files(tmp_path)
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
 
         # Then: files are sorted
         assert result == sorted(result)
-        assert result[0].name == "a_audio.mp3"
+        assert result[0].name == "a_audio.webm"
         assert result[-1].name == "z_audio.mp3"
 
-    def test_returns_empty_list_for_no_mp3s(self, tmp_path: Path) -> None:
-        """Should return empty list when no MP3 files exist."""
-        # Given: a directory with no MP3 files
-        (tmp_path / "audio.wav").touch()
+    def test_returns_empty_list_for_no_audio_files(self, tmp_path: Path) -> None:
+        """Should return empty list when no supported audio files exist."""
+        # Given: a directory with only non-audio files
         (tmp_path / "document.txt").touch()
+        (tmp_path / "image.png").touch()
 
-        # When: finding MP3 files
-        result = find_mp3_files(tmp_path)
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
 
         # Then: empty list is returned
         assert result == []
 
     def test_handles_case_insensitive_extension(self, tmp_path: Path) -> None:
-        """Should find MP3 files with different case extensions."""
-        # Given: MP3 files with different case extensions
+        """Should find audio files with different case extensions."""
+        # Given: audio files with different case extensions
         (tmp_path / "audio1.mp3").touch()
         (tmp_path / "audio2.MP3").touch()
-        (tmp_path / "audio3.Mp3").touch()
+        (tmp_path / "audio3.WebM").touch()
+        (tmp_path / "audio4.WAV").touch()
 
-        # When: finding MP3 files
-        result = find_mp3_files(tmp_path)
+        # When: finding audio files
+        result = find_audio_files(tmp_path)
 
-        # Then: all MP3 files are found regardless of case
-        assert len(result) == 3
+        # Then: all audio files are found regardless of case
+        assert len(result) == 4
 
     def test_raises_file_not_found_for_nonexistent_directory(self) -> None:
         """Should raise FileNotFoundError for non-existent directory."""
         # Given: a non-existent directory
         nonexistent = Path("/nonexistent/directory")
 
-        # When/Then: finding MP3 files raises FileNotFoundError
+        # When/Then: finding audio files raises FileNotFoundError
         with pytest.raises(FileNotFoundError) as exc_info:
-            find_mp3_files(nonexistent)
+            find_audio_files(nonexistent)
 
         assert "Directory not found" in str(exc_info.value)
 
@@ -104,9 +137,9 @@ class TestFindMp3Files:
         file_path = tmp_path / "file.txt"
         file_path.touch()
 
-        # When/Then: finding MP3 files raises NotADirectoryError
+        # When/Then: finding audio files raises NotADirectoryError
         with pytest.raises(NotADirectoryError) as exc_info:
-            find_mp3_files(file_path)
+            find_audio_files(file_path)
 
         assert "Not a directory" in str(exc_info.value)
 
@@ -228,6 +261,25 @@ class TestProcessDirectory:
         assert result.skipped == 0
         assert result.failed == 0
         assert client.transcribe.call_count == 2
+
+    def test_processes_mixed_audio_formats(self, tmp_path: Path) -> None:
+        """Should process all supported audio formats in directory."""
+        # Given: a directory with multiple audio formats
+        (tmp_path / "audio1.mp3").touch()
+        (tmp_path / "audio2.webm").touch()
+        (tmp_path / "audio3.wav").touch()
+        (tmp_path / "document.txt").touch()  # Should be ignored
+
+        client: TranscriptionClientProtocol = MagicMock()
+
+        # When: processing directory
+        result = process_directory(tmp_path, client, "srt")
+
+        # Then: all audio files are processed, non-audio files ignored
+        assert result.processed == 3
+        assert result.skipped == 0
+        assert result.failed == 0
+        assert client.transcribe.call_count == 3
 
     def test_skips_files_with_existing_output(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]

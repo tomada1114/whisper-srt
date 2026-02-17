@@ -437,6 +437,46 @@ class TestCLIMain:
                         assert output_path.exists()
                         assert output_path.read_text() == "Plain text output."
 
+    def test_main_returns_0_for_webm_input(self) -> None:
+        """main should successfully process a WebM audio file."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.webm"
+                        audio_path.touch()
+
+                        result = main([str(audio_path)])
+
+                        assert result == 0
+                        assert (Path(tmpdir) / "input.srt").exists()
+
+    def test_main_returns_1_for_unsupported_extension(self) -> None:
+        """main should return 1 for unsupported audio format."""
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=MagicMock(),
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        audio_path = Path(tmpdir) / "input.xyz"
+                        audio_path.touch()
+
+                        result = main([str(audio_path)])
+
+                        assert result == 1
+
 
 @pytest.mark.unit
 class TestCLIInit:
@@ -762,3 +802,28 @@ class TestCLIDirOption:
                     result = main(["--dir", tmpdir])
 
                     assert result == 1
+
+    def test_main_processes_webm_files_in_directory(self) -> None:
+        """main should process WebM files in directory mode."""
+        mock_openai = MagicMock()
+        mock_openai.audio.transcriptions.create.return_value = SAMPLE_SRT
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("transcribe.infrastructure.openai_client.load_dotenv"):
+                with patch(
+                    "transcribe.infrastructure.openai_client.OpenAI",
+                    return_value=mock_openai,
+                ):
+                    from transcribe.interface.cli import main
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        (Path(tmpdir) / "audio1.webm").touch()
+                        (Path(tmpdir) / "audio2.mp3").touch()
+                        (Path(tmpdir) / "document.txt").touch()  # Should be ignored
+
+                        result = main(["--dir", tmpdir])
+
+                        assert result == 0
+                        assert (Path(tmpdir) / "audio1.srt").exists()
+                        assert (Path(tmpdir) / "audio2.srt").exists()
+                        assert not (Path(tmpdir) / "document.srt").exists()
