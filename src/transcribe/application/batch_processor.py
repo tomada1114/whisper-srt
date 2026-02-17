@@ -1,7 +1,7 @@
 """Batch processing for directory transcription.
 
 This module provides batch processing capabilities for transcribing
-multiple MP3 files in a directory structure.
+multiple audio files in a directory structure.
 """
 
 from __future__ import annotations
@@ -11,8 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from transcribe.application.protocols import ResponseFormat, TranscriptionClientProtocol
+from transcribe.domain.audio_formats import SUPPORTED_AUDIO_EXTENSIONS
 
-__all__ = ["BatchResult", "find_mp3_files", "process_directory"]
+__all__ = ["BatchResult", "find_audio_files", "get_output_path", "process_directory"]
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +28,17 @@ class BatchResult:
     errors: list[tuple[Path, str]]
 
 
-def find_mp3_files(directory: Path) -> list[Path]:
-    """Find all MP3 files recursively in a directory.
+def find_audio_files(directory: Path) -> list[Path]:
+    """Find all supported audio files recursively in a directory.
+
+    Searches for files with extensions supported by the OpenAI Whisper API
+    (flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm).
 
     Args:
         directory: Root directory to search.
 
     Returns:
-        List of MP3 file paths, sorted for deterministic ordering.
+        List of audio file paths, sorted for deterministic ordering.
 
     Raises:
         FileNotFoundError: If directory does not exist.
@@ -47,8 +51,10 @@ def find_mp3_files(directory: Path) -> list[Path]:
 
     # Case-insensitive matching for cross-platform consistency
     all_files = list(directory.rglob("*"))
-    mp3_files = [f for f in all_files if f.is_file() and f.suffix.lower() == ".mp3"]
-    return sorted(mp3_files)
+    audio_files = [
+        f for f in all_files if f.is_file() and f.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS
+    ]
+    return sorted(audio_files)
 
 
 def get_output_path(mp3_path: Path, response_format: ResponseFormat) -> Path:
@@ -98,10 +104,10 @@ def process_directory(
         FileNotFoundError: If directory does not exist.
         NotADirectoryError: If path is not a directory.
     """
-    mp3_files = find_mp3_files(directory)
+    audio_files = find_audio_files(directory)
 
-    if not mp3_files:
-        logger.warning("No MP3 files found in: %s", directory)
+    if not audio_files:
+        logger.warning("No supported audio files found in: %s", directory)
         return BatchResult(processed=0, skipped=0, failed=0, errors=[])
 
     processed = 0
@@ -109,7 +115,7 @@ def process_directory(
     failed = 0
     errors: list[tuple[Path, str]] = []
 
-    for mp3_path in mp3_files:
+    for mp3_path in audio_files:
         output_path = get_output_path(mp3_path, response_format)
 
         # Check skip condition

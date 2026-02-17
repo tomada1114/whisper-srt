@@ -42,11 +42,11 @@ class TranscriptionClientProtocol(Protocol):
     ) -> int:
         """Transcribe audio file to specified format.
 
-        Converts an audio file (MP3) to SRT subtitle or plain text format
+        Converts an audio file to SRT subtitle or plain text format
         using speech-to-text transcription.
 
         Args:
-            audio_path: Path to the input audio file (MP3 format).
+            audio_path: Path to the input audio file (mp3, webm, wav, m4a, etc.).
                 Must be a valid Path object pointing to an existing file.
             output_path: Path where the output file will be saved.
                 Parent directory must exist.
