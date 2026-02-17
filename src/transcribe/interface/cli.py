@@ -14,6 +14,7 @@ from pathlib import Path
 from transcribe import __version__
 from transcribe.application.batch_processor import process_directory
 from transcribe.application.protocols import ResponseFormat, TranscriptionClientProtocol
+from transcribe.domain.audio_formats import SUPPORTED_AUDIO_EXTENSIONS
 from transcribe.domain.config_loader import (
     load_default_language,
     prompt_language_selection,
@@ -37,7 +38,7 @@ def create_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="whisper-srt",
-        description="Transcribe MP3 audio to SRT subtitle format using OpenAI Whisper API.",
+        description="Transcribe audio files to SRT subtitle format using OpenAI Whisper API.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -55,7 +56,7 @@ Examples:
         type=Path,
         nargs="?",
         default=None,
-        help="Input MP3 file path",
+        help="Input audio file path (mp3, webm, wav, m4a, ogg, flac, mp4, mpeg, mpga, oga)",
     )
 
     parser.add_argument(
@@ -116,7 +117,7 @@ Examples:
         type=Path,
         default=None,
         metavar="PATH",
-        help="Directory to process MP3 files recursively (output in same location)",
+        help="Directory to process audio files recursively (output in same location)",
     )
 
     return parser
@@ -190,8 +191,14 @@ def main(argv: list[str] | None = None) -> int:
             logger.error("Input file not found: %s", input_path)
             return 1
 
-        if input_path.suffix.lower() != ".mp3":
-            logger.warning("Input file does not have .mp3 extension: %s", input_path)
+        if input_path.suffix.lower() not in SUPPORTED_AUDIO_EXTENSIONS:
+            supported = ", ".join(sorted(SUPPORTED_AUDIO_EXTENSIONS))
+            logger.error(
+                "Unsupported audio format '%s'. Supported formats: %s",
+                input_path.suffix,
+                supported,
+            )
+            return 1
 
         # Determine output path
         output_path = args.output

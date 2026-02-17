@@ -91,7 +91,7 @@ class OpenAITranscriptionClient:
         Calls OpenAI's Whisper API with the specified response format.
 
         Args:
-            audio_path: Path to the input audio file (MP3 format).
+            audio_path: Path to the input audio file (mp3, webm, wav, m4a, etc.).
             output_path: Path where the output file will be saved.
             response_format: Output format - "srt" for subtitles, "text" for plain text.
 
