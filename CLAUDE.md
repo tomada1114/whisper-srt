@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CLI tool to transcribe MP3 audio files to SRT subtitle or plain text format using OpenAI Whisper API (whisper-1).
+CLI tool to transcribe audio files (mp3, webm, wav, m4a, ogg, flac, mp4, mpeg, mpga, oga) to SRT subtitle or plain text format using OpenAI Whisper API (whisper-1).
 
 ## Commands
 
@@ -41,7 +41,7 @@ Onion Architecture with Protocol-based dependency injection:
 
 ```
 src/transcribe/
-├── domain/           # Domain layer: vocabulary.py, vocabulary_loader.py
+├── domain/           # Domain layer: vocabulary.py, vocabulary_loader.py, audio_formats.py
 ├── application/      # Application layer: protocols.py, batch_processor.py
 ├── infrastructure/   # Infrastructure layer: openai_client.py (OpenAI Whisper API)
 └── interface/        # Interface layer: cli.py (CLI entry point)
@@ -53,7 +53,15 @@ src/transcribe/
 - Vocabulary prompt: `DEFAULT_VOCABULARY` (AI/MCP technical terms) passed to Whisper API's prompt parameter for improved recognition accuracy
 - Custom vocabulary: Loaded from `~/.config/whisper-srt/vocabulary.txt` if exists (via `vocabulary_loader.py`)
 - CLI `--text` flag: Passes `response_format="text"` to client, outputs plain text instead of SRT subtitles
-- CLI `--dir` flag: Batch processes MP3 files in directory recursively via `batch_processor.py`, skips existing outputs
+- Supported formats: `SUPPORTED_AUDIO_EXTENSIONS` in `audio_formats.py` defines all Whisper-supported formats (mp3, webm, wav, m4a, ogg, flac, mp4, mpeg, mpga, oga)
+- CLI `--dir` flag: Batch processes all supported audio files in directory recursively via `batch_processor.py`, skips existing outputs
+
+## Skill Activation Rules
+
+When the user provides an audio file path and wants to transcribe it, ALWAYS use the Skill tool:
+
+- **音声ファイルの文字起こし・テキスト化** → `transcribe-audio` skill
+- **NativeCampレッスン音声** (NativeCamp, 英会話レッスン, スピーカー分類, 講師とTom) → `nativecamp-lesson-transcribe` skill
 
 ## Testing
 
