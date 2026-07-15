@@ -21,7 +21,7 @@ Transcribe the specified audio file and save the result as `.txt` in the same di
 2. Run transcription from the project root with venv activated:
 
 ```bash
-cd /Users/masuyama/workspace/whisper-srt
+cd /Users/masuyama/ghq/github.com/tomada1114/whisper-srt
 source venv/bin/activate
 python -m transcribe "<absolute_path>" --text
 ```
